@@ -2,11 +2,11 @@
 # Simple KG status tailer (log + progress.json)
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-LOG_DIR_PRIMARY="$REPO_ROOT/OSRS_AI_SYSTEM/logs/kg"
+LOG_DIR_PRIMARY="$REPO_ROOT/logs/kg"
 LOG_DIR_FALLBACK="$REPO_ROOT/logs/kg"
 LOG_DIR="$LOG_DIR_PRIMARY"
 [ -d "$LOG_DIR" ] || LOG_DIR="$LOG_DIR_FALLBACK"
-PROGRESS="$REPO_ROOT/OSRS_AI_SYSTEM/data/kg_model/progress.json"
+PROGRESS="$REPO_ROOT/data/kg_model/progress.json"
 
 latest_log() {
   ls -t "$LOG_DIR"/train_*.log 2>/dev/null | head -n 1

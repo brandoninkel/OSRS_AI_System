@@ -10,9 +10,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-API_DIR="${REPO_ROOT}/OSRS_AI_SYSTEM/api"
-SCRIPTS_DIR="${REPO_ROOT}/OSRS_AI_SYSTEM/scripts"
-DATA_DIR="${REPO_ROOT}/OSRS_AI_SYSTEM/data"
+API_DIR="${REPO_ROOT}/api"
+SCRIPTS_DIR="${REPO_ROOT}/scripts"
+DATA_DIR="${REPO_ROOT}/data"
 LOG_DIR="${REPO_ROOT}/logs/osrs_ai"
 mkdir -p "${LOG_DIR}" "${DATA_DIR}"
 

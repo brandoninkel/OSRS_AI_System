@@ -243,7 +243,7 @@ def main():
         tester.print_recommendations(results)
         
         # Save results for reference
-        results_file = Path("OSRS_AI_SYSTEM/data/mxbai_performance_results.json")
+        results_file = Path("data/mxbai_performance_results.json")
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
         print(f"\n📁 Results saved to: {results_file}")

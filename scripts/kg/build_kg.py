@@ -16,7 +16,7 @@ Notes:
 - Designed to run alongside the existing embedding pipeline without changing it.
 
 Usage:
-  python3 OSRS_AI_SYSTEM/scripts/kg/build_kg.py --snapshot --max-pages 0
+  python3 scripts/kg/build_kg.py --snapshot --max-pages 0
 """
 
 import os
@@ -29,7 +29,7 @@ import multiprocessing as mp
 from pathlib import Path
 from typing import Dict, Any, Iterable, Tuple, List
 
-REPO_ROOT = Path(__file__).resolve().parents[2]  # .../OSRS_AI_SYSTEM
+REPO_ROOT = Path(__file__).resolve().parents[2]  # .../GE
 DATA_DIR = REPO_ROOT / "data"
 CONTENT_JSONL = DATA_DIR / "osrs_wiki_content.jsonl"
 WIKITEXT_JSONL = DATA_DIR / "osrs_wikitext_content.jsonl"
