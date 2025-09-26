@@ -644,6 +644,28 @@ class OSRSRAGService:
         # Compute cosine similarity
         similarities = np.dot(query_norm, embeddings_norm.T)[0]
 
+        # Apply title matching boosts
+        query_lower = query.lower().strip()
+
+        import re
+        def _base_title(t: str) -> str:
+            t = re.sub(r"\s*\(.*?\)", "", t or "").strip()
+            t = t.split('/')[0].strip()
+            return t
+
+        for i, content_data in enumerate(self.embeddings_data):
+            if not isinstance(content_data, dict):
+                continue
+            title = (content_data.get('title') or '').strip()
+            title_lower = title.lower()
+
+            # EXACT TITLE MATCH gets massive boost - this is the most important signal
+            if title_lower == query_lower:
+                similarities[i] = min(similarities[i] + 0.8, 1.0)  # Massive boost for exact title match
+            # Strong penalty for variant pages (with parentheses) when exact match exists
+            elif '(' in title:
+                similarities[i] = max(similarities[i] - 0.2, -1.0)
+
         # Get top results
         top_indices = np.argsort(similarities)[::-1][:top_k * 2]  # Get extra for filtering
 
@@ -708,214 +730,10 @@ class OSRSRAGService:
         combined.sort(key=lambda x: x[1], reverse=True)
         return combined[:top_k]
 
-        # Intent-aware neutral query expansion (no entity hints; generic synonyms to improve recall)
-        intents = self.detect_query_intent(query)
-        if intents:
-            expansion_terms = []
-            if 'requirements' in intents:
-                expansion_terms += ["requirements", "quest requirements", "skill requirements", "unlock", "completion"]
-            if 'drops' in intents:
-                expansion_terms += ["drop table", "unique drops", "loot"]
-            if 'location' in intents:
-                expansion_terms += ["located at", "located in", "near", "north of", "south of"]
-            if 'stats' in intents:
-                expansion_terms += ["max hit", "hitpoints", "combat level"]
-            if 'strategy' in intents:
-                expansion_terms += ["mechanics", "strategy", "safe spot"]
-            if 'economy' in intents:
-                expansion_terms += ["price", "grand exchange", "market"]
-            if expansion_terms:
-                try:
-                    aug_query = f"{query} | " + ", ".join(expansion_terms)
-                    aug_emb = self.embedding_service.embed_text(aug_query)
-                    if aug_emb and query_embedding:
-                        # Blend original and augmented embeddings to broaden recall slightly
-                        qe = np.array(query_embedding)
-                        ae = np.array(aug_emb)
-                        if qe.shape == ae.shape:
-                            query_embedding = (0.7 * qe + 0.3 * ae).tolist()
-                except Exception:
-                    pass
-
-        if not query_embedding:
-            logger.error("Failed to create query embedding")
-            return []
-
-        # Calculate cosine similarity with all embeddings using numpy
-        query_embedding = np.array(query_embedding).reshape(1, -1)
-
-        # Normalize vectors for cosine similarity
-        query_norm = query_embedding / np.linalg.norm(query_embedding)
-        embeddings_norm = self.embeddings_matrix / np.linalg.norm(self.embeddings_matrix, axis=1, keepdims=True)
-
-        # Compute cosine similarity
-        similarities = np.dot(query_norm, embeddings_norm.T)[0]
-
-        # Apply organic, domain-agnostic boosts (no hardcoded entities)
-        query_lower = query.lower().strip()
-
-        import re
-        item_patterns = re.findall(r'\b[a-z]+\s+[a-z]+(?:\s+[a-z]+)?\b', query_lower)
-        item_patterns.extend(re.findall(r'\b[a-z]+\b', query_lower))
-
-        def _base_title(t: str) -> str:
-            t = re.sub(r"\s*\(.*?\)", "", t or "").strip()
-            t = t.split('/') [0].strip()
-            return t
-
-        # Precompute base title frequency to identify canonical vs variants
-        base_title_counts = {}
-        for d in self.embeddings_data:
-            try:
-                bt = _base_title(d.get('title', ''))
-                if bt:
-                    base_title_counts[bt] = base_title_counts.get(bt, 0) + 1
-            except Exception:
-                continue
-
-        for i, content_data in enumerate(self.embeddings_data):
-            if not isinstance(content_data, dict):
-                continue
-            title = (content_data.get('title') or '').strip()
-            title_lower = title.lower()
-            text_val = (content_data.get('text') or '')
-
-            # EXACT TITLE MATCH gets massive boost - this is the most important signal
-            if title_lower == query_lower:
-                similarities[i] = min(similarities[i] + 0.8, 1.0)  # Massive boost for exact title match
-            # Base title matching (canonical form)
-            elif title_lower in query_lower:
-                similarities[i] = min(similarities[i] + 0.25, 1.0)
-            elif query_lower in title_lower:
-                similarities[i] = min(similarities[i] + 0.15, 1.0)
-            else:
-                for pattern in item_patterns:
-                    if len(pattern) > 3 and pattern in title_lower:
-                        similarities[i] = min(similarities[i] + 0.15, 1.0)
-                        break
-
-            # Strong penalty for variant pages (with parentheses) when exact match exists
-            bt = _base_title(title)
-            if bt and base_title_counts.get(bt, 0) > 1 and title != bt and '(' in title:
-                # Heavy penalty for variants when we have an exact match query
-                similarities[i] = max(similarities[i] - 0.2, -1.0)
-
-            # Penalize extremely short pages; reward section-rich pages slightly
-            L = len(text_val)
-            if L < 400:
-                similarities[i] = max(similarities[i] - 0.08, -1.0)
-            elif L > 3000:
-                similarities[i] = min(similarities[i] + 0.02, 1.0)
-            try:
-                headings = sum(1 for ln in text_val.split('\n') if ln.strip().startswith('='))
-                if headings >= 3:
-                    similarities[i] = min(similarities[i] + 0.03, 1.0)
-            except Exception:
-                pass
-
-
-            # Intent-aware structural adjustments to title namespaces/subpages (domain-agnostic)
-            intents = self.detect_query_intent(query)
-            title_ns = title_lower
-            # Penalize community/guide namespaces across the board
-            if any(title_ns.startswith(ns) for ns in ["guide:", "user:", "talk:", "blog:", "old school runescape wiki:", "oldschool runescape wiki:"]):
-                similarities[i] = max(similarities[i] - 0.12, -1.0)
-            # Money making guides: helpful for economy, distracting otherwise
-            if "money making guide/" in title_ns:
-                if 'economy' in intents:
-                    similarities[i] = min(similarities[i] + 0.08, 1.0)
-                else:
-                    similarities[i] = max(similarities[i] - 0.10, -1.0)
-            # Strategy pages: boost only for strategy intent
-            if "/strateg" in title_ns:  # matches /Strategies, /Strategy
-                if 'strategy' in intents or 'damage_modality' in intents:
-                    similarities[i] = min(similarities[i] + 0.05, 1.0)
-                else:
-                    similarities[i] = max(similarities[i] - 0.03, -1.0)
-            # Drop-related subpages: boost for drops intent
-            if any(s in title_ns for s in ["/drops", "/drop rates", "/drop table"]):
-                if 'drops' in intents:
-                    similarities[i] = min(similarities[i] + 0.07, 1.0)
-                else:
-                    similarities[i] = max(similarities[i] - 0.02, -1.0)
-            # Location subpages: boost for location intent
-            if any(s in title_ns for s in ["/location", "/locations"]):
-                if 'location' in intents:
-                    similarities[i] = min(similarities[i] + 0.06, 1.0)
-            # Stats/Bestiary pages: boost for stats intent
-            if any(s in title_ns for s in ["/bestiary", "/stats", "/combat info"]):
-                if 'stats' in intents:
-                    similarities[i] = min(similarities[i] + 0.06, 1.0)
-
-            # Content-based intent presence adjustment (tilt retrieval toward evidence-rich docs)
-            try:
-                text_lower = (text_val or "").lower()
-                intents2 = self.detect_query_intent(query)
-                if 'requirements' in intents2:
-                    if any(tok in text_lower for tok in ["requirement", "requirements", "level req", "quest requirement", "completion"]):
-                        similarities[i] = min(similarities[i] + 0.06, 1.0)
-                    else:
-                        similarities[i] = max(similarities[i] - 0.03, -1.0)
-                if 'drops' in intents2:
-                    if any(tok in text_lower for tok in ["drop table", "drops", "unique", "rare drop", "loot"]):
-                        similarities[i] = min(similarities[i] + 0.05, 1.0)
-                if 'location' in intents2:
-                    if any(tok in text_lower for tok in ["located in", "located at", "found in", "near ", "north of", "south of", "east of", "west of", "island", "dungeon", "cave"]):
-                        similarities[i] = min(similarities[i] + 0.05, 1.0)
-                if 'stats' in intents2:
-                    if any(tok in text_lower for tok in ["hitpoints", "hp", "max hit", "combat level", "attack speed", "defence level", "defense level", "accuracy"]):
-                        similarities[i] = min(similarities[i] + 0.05, 1.0)
-                if 'strategy' in intents2:
-                    if any(tok in text_lower for tok in ["mechanics", "strategy", "phase", "attack cycle", "avoid", "dodge", "safe spot"]):
-                        similarities[i] = min(similarities[i] + 0.04, 1.0)
-                if 'economy' in intents2:
-                    if any(tok in text_lower for tok in ["price", "grand exchange", "market", "value"]):
-                        similarities[i] = min(similarities[i] + 0.05, 1.0)
-            except Exception:
-                pass
-
-
-        # Check if user is asking about temporary content
-        include_temporary = self.query_mentions_temporary_content(query)
-
-        # Rank and select top_k after filtering (no hardcoded inclusions)
-        top_indices = np.argsort(similarities)[::-1]
-
-        results = []
-        used_bases = set()
-
-        for idx in top_indices:
-            if len(results) >= top_k:
-                break
-            content_data = self.embeddings_data[idx]
-            if not isinstance(content_data, dict):
-                continue
-            title_val = content_data.get('title', '')
-            text_val = (content_data.get('text', '') or '')
-            categories = content_data.get('categories', []) or []
-
-            # Filter out temporary content unless specifically requested
-            if not include_temporary and self.is_temporary_content(title_val, text_val):
-                continue
-
-            # Filter out disambiguation/interface-item style pages which are poor answers
-            tl = (title_val or '').lower()
-            cats_lower = [str(c).lower() for c in categories]
-            if 'disambiguation' in tl or any('disambiguation' in c for c in cats_lower):
-                continue
-            if '(interface item' in tl or any('interface item' in c for c in cats_lower):
-                continue
-
-            # Deduplicate by base title to avoid flooding with variants
-            bt = _base_title(title_val)
-            if bt in used_bases:
-                continue
-            used_bases.add(bt)
-
-            similarity_score = similarities[idx]
-            results.append((content_data, similarity_score))
-
-        return results
+    def _find_similar_content_with_boosts(self, query: str, query_embedding: List[float], top_k: int) -> List[Tuple[Dict[str, Any], float]]:
+        """Find similar content with advanced title matching and intent-aware boosts"""
+        # This is a placeholder for future advanced search functionality
+        return self._find_similar_wiki_content(query, query_embedding, top_k)
 
 
     # ---- Spelling-aware query augmentation (domain-agnostic; built from title tokens) ----
