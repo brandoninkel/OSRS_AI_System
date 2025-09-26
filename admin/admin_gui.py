@@ -11,7 +11,7 @@ Requirements:
   pip install dearpygui requests
 
 Run:
-  python3 OSRS_AI_SYSTEM/admin/admin_gui.py
+  python3 admin/admin_gui.py
 """
 import os
 import sys
@@ -44,11 +44,11 @@ except Exception as e:
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LOG_DIR = REPO_ROOT / "logs" / "osrs_ai"
-API_DIR = REPO_ROOT / "OSRS_AI_SYSTEM" / "api"
-SCRIPTS_DIR = REPO_ROOT / "OSRS_AI_SYSTEM" / "scripts"
+API_DIR = REPO_ROOT / "api"
+SCRIPTS_DIR = REPO_ROOT / "scripts"
 CPU_CORES = os.cpu_count() or 8
 TURBO_WORKERS = str(min(24, max(8, int(CPU_CORES))))
-KG_PID_PATH = REPO_ROOT / "OSRS_AI_SYSTEM" / "logs" / "kg" / "train.pid"
+KG_PID_PATH = REPO_ROOT / "logs" / "kg" / "train.pid"
 
 # Global log buffer for KG operations
 KG_LOG_BUFFER = []
@@ -90,43 +90,43 @@ COMMANDS = {
     "build_kg": [str(SCRIPTS_DIR / "knowledge-graph.command"), "--workers", "4"],
     # Strict PyKEEN training (no eval, no fallback), tuned for performance
     "train_kg_pykeen": [
-        str(REPO_ROOT / "OSRS_AI_SYSTEM" / "scripts" / "train-kg-embeddings.command"),
+        str(REPO_ROOT / "scripts" / "train-kg-embeddings.command"),
         "--backend", "pykeen", "--no-eval", "--strict",
-        "--triples", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "osrs_kg_triples.csv"),
-        "--out", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model"),
+        "--triples", str(REPO_ROOT / "data" / "osrs_kg_triples.csv"),
+        "--out", str(REPO_ROOT / "data" / "kg_model"),
         "--model", "TransE", "--dimension", "100",
         "--epochs", "25", "--num-workers", "0", "--batch-size", "512"
     ],
     # Optional spectral fallback (fast, low memory)
     "train_kg_spectral": [
-        str(REPO_ROOT / "OSRS_AI_SYSTEM" / "scripts" / "train-kg-embeddings.command"),
+        str(REPO_ROOT / "scripts" / "train-kg-embeddings.command"),
         "--backend", "spectral",
-        "--triples", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "osrs_kg_triples.csv"),
-        "--out", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model"),
+        "--triples", str(REPO_ROOT / "data" / "osrs_kg_triples.csv"),
+        "--out", str(REPO_ROOT / "data" / "kg_model"),
         "--dimension", "64"
     ],
     # Chunked evaluation (safe memory)
     "eval_kg": [
-        str(REPO_ROOT / "OSRS_AI_SYSTEM" / "scripts" / "eval-kg-embeddings.command"),
-        "--triples", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "osrs_kg_triples.csv"),
-        "--out", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model"),
+        str(REPO_ROOT / "scripts" / "eval-kg-embeddings.command"),
+        "--triples", str(REPO_ROOT / "data" / "osrs_kg_triples.csv"),
+        "--out", str(REPO_ROOT / "data" / "kg_model"),
         "--batch-size", "8", "--slice-size", "1", "--device", "auto"
     ],
     # Incremental update (fast): resume artifacts, few epochs
     "train_kg_incremental": [
-        str(REPO_ROOT / "OSRS_AI_SYSTEM" / "scripts" / "train-kg-embeddings.command"),
+        str(REPO_ROOT / "scripts" / "train-kg-embeddings.command"),
         "--backend", "pykeen", "--no-eval", "--strict", "--resume",
-        "--triples", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "osrs_kg_triples.csv"),
-        "--out", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model"),
+        "--triples", str(REPO_ROOT / "data" / "osrs_kg_triples.csv"),
+        "--out", str(REPO_ROOT / "data" / "kg_model"),
         "--model", "TransE", "--dimension", "100",
         "--epochs", "5", "--num-workers", "8", "--batch-size", "256"
     ],
     # Clean one-epoch training to align vocab for eval
     "train_kg_one_epoch": [
-        str(REPO_ROOT / "OSRS_AI_SYSTEM" / "scripts" / "train-kg-embeddings.command"),
+        str(REPO_ROOT / "scripts" / "train-kg-embeddings.command"),
         "--backend", "pykeen", "--no-eval", "--strict",
-        "--triples", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "osrs_kg_triples.csv"),
-        "--out", str(REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model"),
+        "--triples", str(REPO_ROOT / "data" / "osrs_kg_triples.csv"),
+        "--out", str(REPO_ROOT / "data" / "kg_model"),
         "--model", "TransE", "--dimension", "100",
         "--epochs", "1", "--num-workers", "0", "--batch-size", "512"
     ],
@@ -138,11 +138,11 @@ LOG_FILES = {
     "embedder": LOG_DIR / "embedder.out",
 }
 
-LOG_KG_DIR_PRIMARY = REPO_ROOT / "OSRS_AI_SYSTEM" / "logs" / "kg"
+LOG_KG_DIR_PRIMARY = REPO_ROOT / "logs" / "kg"
 LOG_KG_DIR_FALLBACK = REPO_ROOT / "logs" / "kg"
 LOG_KG_DIR = LOG_KG_DIR_PRIMARY if LOG_KG_DIR_PRIMARY.exists() else LOG_KG_DIR_FALLBACK
-PROGRESS_PATH = REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model" / "progress.json"
-EVAL_PROGRESS_PATH = REPO_ROOT / "OSRS_AI_SYSTEM" / "data" / "kg_model" / "eval_progress.json"
+PROGRESS_PATH = REPO_ROOT / "data" / "kg_model" / "progress.json"
+EVAL_PROGRESS_PATH = REPO_ROOT / "data" / "kg_model" / "eval_progress.json"
 
 STATE = {
     "last_health": None,

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class OSRSRAGService:
     def __init__(self):
         # Paths
-        self.embeddings_path = "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/data/osrs_embeddings.jsonl"
+        self.embeddings_path = "/Users/brandon/Documents/projects/GE/data/osrs_embeddings.jsonl"
 
         # Initialize embedding service for queries
         config = EmbeddingConfig(
@@ -51,7 +51,7 @@ class OSRSRAGService:
         self._reload_event = threading.Event()
 
         # PID file for signal-based reload notifications from the embedding writer
-        self.pid_file = "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/data/rag_service.pid"
+        self.pid_file = "/Users/brandon/Documents/projects/GE/data/rag_service.pid"
         try:
             os.makedirs(os.path.dirname(self.pid_file), exist_ok=True)
             with open(self.pid_file, 'w') as pf:

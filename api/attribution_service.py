@@ -22,7 +22,7 @@ from datetime import datetime
 
 DEFAULT_UA = "OSRS-AI/1.0 (contact: dev@local)"
 WIKI_REST_BASE = "https://oldschool.runescape.wiki/rest.php/v1"
-CACHE_DIR = "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/data/cache"
+CACHE_DIR = "/Users/brandon/Documents/projects/GE/data/cache"
 CACHE_FILE = os.path.join(CACHE_DIR, "attribution_cache.json")
 
 
