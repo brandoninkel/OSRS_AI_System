@@ -1,0 +1,57 @@
+# OSRS AI System - Exclude large data files and dependencies
+
+# Backup directories
+backup_old_projects/
+
+# Large data files (exclude from git)
+*.jsonl
+*.json.gz
+*embeddings*
+*wiki_content*
+*wikitext_content*
+data/osrs_*.jsonl
+data/osrs_*.json
+data/kg_*.jsonl
+data/cache/
+data/tmp/
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.venv/
+.kg-venv/
+*.egg-info/
+
+# Logs
+logs/
+*.log
+*.pid
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp

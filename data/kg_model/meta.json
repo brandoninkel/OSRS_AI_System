@@ -1,0 +1,10 @@
+{
+  "backend": "pykeen",
+  "model": "TransE",
+  "dimension": 100,
+  "epochs": 1,
+  "batch_size": 512,
+  "num_workers": 0,
+  "triples_count": 1344182,
+  "nodes_count": 148003
+}

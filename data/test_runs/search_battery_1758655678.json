@@ -1,0 +1,212 @@
+{
+  "timestamp": "2025-09-23T12:27:58.063246",
+  "health": true,
+  "base": "http://localhost:5001",
+  "ran": 17,
+  "results": [
+    {
+      "chat_id": "boss_vorkath_drops",
+      "query": "What are Vorkath's unique drops?",
+      "status": 200,
+      "elapsed_sec": 1.49,
+      "total_results": 10,
+      "top_titles": [
+        "Drops",
+        "Vorkath",
+        "Ork"
+      ]
+    },
+    {
+      "chat_id": "boss_vorkath_loc",
+      "query": "Where is Vorkath located?",
+      "status": 200,
+      "elapsed_sec": 1.54,
+      "total_results": 10,
+      "top_titles": [
+        "Vorkath",
+        "Vorkath's head",
+        "Ed"
+      ]
+    },
+    {
+      "chat_id": "boss_vorkath_stats",
+      "query": "What is Vorkath's combat level?",
+      "status": 200,
+      "elapsed_sec": 1.34,
+      "total_results": 10,
+      "top_titles": [
+        "Combat level",
+        "Vorkath",
+        "Combat"
+      ]
+    },
+    {
+      "chat_id": "boss_zulrah_strategy",
+      "query": "Describe Zulrah's phases briefly.",
+      "status": 200,
+      "elapsed_sec": 1.3,
+      "total_results": 10,
+      "top_titles": [
+        "Zulrah/Strategies",
+        "Money making guide/Killing Zulrah (max efficiency)",
+        "Zulrah display (Old School Museum)"
+      ]
+    },
+    {
+      "chat_id": "boss_zulrah_modality",
+      "query": "Can Zulrah be damaged by melee?",
+      "status": 200,
+      "elapsed_sec": 1.17,
+      "total_results": 10,
+      "top_titles": [
+        "Zulrah",
+        "Money making guide/Killing Zulrah (max efficiency)",
+        "Maximum melee hit"
+      ]
+    },
+    {
+      "chat_id": "boss_zulrah_maxhit",
+      "query": "What is Zulrah's max hit?",
+      "status": 200,
+      "elapsed_sec": 1.19,
+      "total_results": 10,
+      "top_titles": [
+        "Zulrah",
+        "Snakeling",
+        "Zulrah display (Old School Museum)"
+      ]
+    },
+    {
+      "chat_id": "boss_verzik_orb",
+      "query": "What are the mechanics of Verzik's green orb?",
+      "status": 200,
+      "elapsed_sec": 1.26,
+      "total_results": 10,
+      "top_titles": [
+        "Perfect Verzik",
+        "Orb",
+        "Verzik Vitur"
+      ]
+    },
+    {
+      "chat_id": "item_barrows_gloves_req",
+      "query": "What are the requirements to wear Barrows gloves?",
+      "status": 200,
+      "elapsed_sec": 1.15,
+      "total_results": 10,
+      "top_titles": [
+        "Barrows gloves",
+        "Rune gloves",
+        "Gloves"
+      ]
+    },
+    {
+      "chat_id": "item_whip_speed",
+      "query": "What is the attack speed of the Abyssal whip?",
+      "status": 200,
+      "elapsed_sec": 1.21,
+      "total_results": 10,
+      "top_titles": [
+        "Whip",
+        "Abyssal whip",
+        "Attack speed"
+      ]
+    },
+    {
+      "chat_id": "item_dscim_str",
+      "query": "What is the strength bonus of the Dragon scimitar?",
+      "status": 200,
+      "elapsed_sec": 1.03,
+      "total_results": 10,
+      "top_titles": [
+        "Dragon scimitar",
+        "Scimitar",
+        "Dragon sword"
+      ]
+    },
+    {
+      "chat_id": "loc_zul_andra",
+      "query": "Where is Zul-Andra located?",
+      "status": 200,
+      "elapsed_sec": 1.29,
+      "total_results": 10,
+      "top_titles": [
+        "Zul-Andra teleport (scenery)",
+        "Chest (Zul-Andra)",
+        "Ed"
+      ]
+    },
+    {
+      "chat_id": "loc_barrows",
+      "query": "Where is the Barrows minigame located?",
+      "status": 200,
+      "elapsed_sec": 1.27,
+      "total_results": 10,
+      "top_titles": [
+        "Barrow",
+        "Ed",
+        "Minigames"
+      ]
+    },
+    {
+      "chat_id": "econ_vorkath_profitable",
+      "query": "Which Vorkath drops are commonly noted as profitable?",
+      "status": 200,
+      "elapsed_sec": 1.52,
+      "total_results": 10,
+      "top_titles": [
+        "Money making guide/Killing Vorkath (Toxic blowpipe)",
+        "Vorkath",
+        "Ork"
+      ]
+    },
+    {
+      "chat_id": "slayer_kraken_assign",
+      "query": "Which Slayer masters can assign Kraken?",
+      "status": 200,
+      "elapsed_sec": 1.05,
+      "total_results": 10,
+      "top_titles": [
+        "Slayer Master",
+        "Slayer",
+        "Kraken"
+      ]
+    },
+    {
+      "chat_id": "clue_coordinate",
+      "query": "What are coordinate clues?",
+      "status": 200,
+      "elapsed_sec": 1.0,
+      "total_results": 10,
+      "top_titles": [
+        "Combat only pure/Beginner-clues",
+        "Clue scroll (elite) - Desert insects is what I see",
+        "Clue scroll (medium) - Are you somewhat entertained"
+      ]
+    },
+    {
+      "chat_id": "pray_protect_magic",
+      "query": "What does Protect from Magic do?",
+      "status": 200,
+      "elapsed_sec": 1.01,
+      "total_results": 10,
+      "top_titles": [
+        "Protect from Magic",
+        "Protect",
+        "Magic"
+      ]
+    },
+    {
+      "chat_id": "timeline_zulrah_release",
+      "query": "When was Zulrah released?",
+      "status": 200,
+      "elapsed_sec": 0.98,
+      "total_results": 10,
+      "top_titles": [
+        "Zulrah",
+        "Zulrah display (Old School Museum)",
+        "Zulrah's scales"
+      ]
+    }
+  ]
+}

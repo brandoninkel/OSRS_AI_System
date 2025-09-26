@@ -1,0 +1,120 @@
+{{Instance|irs=Priestess Zul-Gwenwynig|cost=100000}}
+{{HasStrategy}}
+{{Infobox Monster
+|version1 = Serpentine
+|version2 = Magma
+|version3 = Tanzanite
+|name = Zulrah
+|image1 = [[File:Zulrah (serpentine).png|x277px]]
+|image2 = [[File:Zulrah (magma).png|x277px]]
+|image3 = [[File:Zulrah (tanzanite).png|x277px]]
+|release = [[8 January]] [[2015]]
+|update = Zulrah - The Solo Snake Boss
+|members = Yes
+|combat = 725
+|size = 5
+|examine1 = The green hooded serpent of the poison waste.
+|examine2 = The crimson hooded serpent of the poison waste.
+|examine3 = The turquoise hooded serpent of the poison waste.
+|xpbonus = 0
+|max hit = 41
+|max hit2 = 30
+|aggressive = Yes
+|poisonous = Yes ([[venom]])
+|attack style1 = [[Ranged]]
+|attack style2 = [[Typeless]] 
+|attack style3 = [[Magic]], [[Ranged]]
+|attack speed = 3
+|slayxp = 500
+|cat = Bosses
+|assignedby = konar,nieve,duradel
+|hitpoints = 500
+|att = 1
+|str = 1
+|def = 300
+|mage = 300
+|range = 300
+|attbns = 0
+|strbns = 0
+|amagic = 50
+|mbns = 20
+|arange = 50
+|rngbns = 20
+|dstab = 0
+|dslash = 0
+|dcrush = 0
+|dmagic1 = -45
+|dmagic2 = 0
+|dmagic3 = 300
+|dlight1 = 50
+|dstandard1 = 50
+|dheavy1 = 50
+|dlight2 = 300
+|dstandard2 = 300
+|dheavy2 = 300
+|dlight3 = 0
+|dstandard3 = 0
+|dheavy3 = 0
+|elementalweaknesstype1 = Fire
+|elementalweaknesspercent1 = 50
+|elementalweaknesstype2 = Fire
+|elementalweaknesspercent2 = 50
+|elementalweaknesstype3 = Fire
+|elementalweaknesspercent3 = 50
+|immunepoison = Immune
+|immunevenom = Immune
+|immunecannon = No
+|immunethrall = No
+|id1 = 2042
+|id2 = 2043
+|id3 = 2044
+|leagueRegion = Tirannwn
+}}
+'''Zulrah''' is a level 725 solo-only snake [[boss]]. Before the player can fight Zulrah, players must have completed [[Regicide]] to the point of reaching [[Port Tyras]], as well as having spoken with [[High Priestess Zul-Harcinqa]] to offer themselves as the sacrifice in place of the [[sacrifice|gnome child]], as [[Priestess Zul-Gwenwynig|Zul-Gwenwynig]] will prevent the player from boarding the boat until Zul-Harcinqa allows them to be the sacrifice.
+
+Killing Zulrah is a required task for the hard [[Western Provinces Diary#Hard|Western Provinces Achievement Diary]], which in turn is a requirement for upgrading to the [[Elite Void Knight equipment|Elite Void]] set.
+
+==History==
+As described in the [[stained journal]], Zulrah was created during the [[Dragonkin Conflicts]] as an experiment by an unnamed [[dragonkin]] living in the [[Poison Waste]]. Originally seen as one of many failures, Zulrah was discarded into the swamp, where it grew into an unexpectedly powerful and intelligent serpent. It was found once again by its dragonkin creator, who named it "Zulrah" before eventually being eaten by their own creation.
+
+===Drops===
+''In addition to the 100% drops, the player will also have two rolls on Zulrah's drop table, excluding tertiary items, which have only one roll. The displayed drop chances represent a single roll.''
+
+{{DropLogProject|kills=223726}}
+
+{{Average drop value}}
+
+{{Average drop value|alch=yes}}
+
+{{Average drop value|brimstone=yes}}
+
+===100%===
+{{DropsTableHead}}
+{{DropsLine|name=Zulrah's scales|quantity=100-299<!--note: the 500 scale drop is separate and intentionally excluded here-->|rarity=Always}}
+{{DropsTableBottom}}
+
+===Uniques===
+''There is a 1/256 chance of hitting the unique drop table per roll.{{CiteTwitter|author=Mod Ash|url=https://twitter.com/JagexAsh/status/735841565785100288|date=26 May 2016|archiveurl=https://archive.is/ktMfw|archivedate=26 May 2020|quote=It's 1/256 per roll, you get two rolls per kill.}} Zulrah gives two rolls per kill, meaning there's approximately a 1/512 chance per kill to receive a specific item from this table (or ~1/128 for any item). Below lists the approximate drop rates '''per roll''' of any '''specific''' item, which takes into account the fact that there are 4 different items in this drop table. Although uncut onyx appears on the unique drop table and in the collection log, it is not exclusive to Zulrah.'' 
+
+{{DropsTableHead}}
+{{DropsLine|name=Tanzanite fang|quantity=1|rarity=1/1024|rolls=2}}
+{{DropsLine|name=Magic fang|quantity=1|rarity=1/1024|rolls=2}}
+{{DropsLine|name=Serpentine visage|quantity=1|rarity=1/1024|rolls=2}}
+{{DropsLine|name=Uncut onyx|quantity=1|rarity=1/1024|rolls=2}}
+{{DropsTableBottom}}
+
+===Mutagens===
+''There is a 10/249 chance to roll on the flax table, followed by a 10/2,632 chance to roll on the mutagen sub-table.{{CiteTwitter|author=Mod Wolf|date=30 March 2019|url=https://twitter.com/JagexWolf/status/1111946035604176897|archiveurl=http://archive.is/ldIbR|archivedate=26 May 2020|quote=This is correct}} Each mutagen is equally likely, making the drop rate '''per kill''' approximately 1/6,554 for a specific mutagen or 1/3,277 for either mutagen.''
+{{DropsTableHead}}
+{{DropsLine|name=Flax|quantity=1000 (noted)|rarity=10/249|raritynotes={{Refn|group=d|The exact rarity is 10/249 * 5244/5264 per roll.}}|rolls=2}}
+{{DropsLine|name=Tanzanite mutagen|quantity=1|rarity=1/13107|raritynotes={{Refn|group=d|name=muta|The exact rarity is 10/249 * 10/5264 per roll.}}|gemw=No|rolls=2}}
+{{DropsLine|name=Magma mutagen|quantity=1|rarity=1/13107|raritynotes={{Refn|group=d|name=muta}}|gemw=No|rolls=2}}
+{{DropsTableBottom}}
+{{Reflist|group=d}}
+
+===Weapons and armour===
+{{DropsTableHead}}
+{{DropsLine|name=Battlestaff|quantity=10 (noted)|rarity=10/249|rolls=2}}
+{{DropsLine|name=Dragon med helm|quantity=1|rarity=2/249|rolls=2}}
+{{DropsLine|name=Dragon halberd|quantity=1|rarity=2/249|rolls=2}}
+{{DropsTableBottom}}

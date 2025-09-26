@@ -1,0 +1,9 @@
+{
+  "generated_at": 1758757570,
+  "content_src": "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/OSRS_AI_SYSTEM/data/osrs_wiki_content.jsonl",
+  "wikitext_src": null,
+  "triples_csv": "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/OSRS_AI_SYSTEM/data/osrs_kg_triples.csv",
+  "nodes_jsonl": "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/OSRS_AI_SYSTEM/data/osrs_kg_nodes.jsonl",
+  "edges_jsonl": "/Users/brandon/Documents/projects/GE/OSRS_AI_SYSTEM/OSRS_AI_SYSTEM/data/osrs_kg_edges.jsonl",
+  "pages_processed": 0
+}

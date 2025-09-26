@@ -1,0 +1,161 @@
+{
+  "timestamp": "2025-09-23T13:13:34.896569",
+  "health": true,
+  "base": "http://localhost:5001",
+  "ran": 17,
+  "results": [
+    {
+      "chat_id": "boss_vorkath_drops",
+      "query": "What are Vorkath's unique drops? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 22.52,
+      "success": true,
+      "response_preview": "Vorkath's unique drops are:\n\n* Brimstone key (drop rate: 1/65)\n* Dragonbone necklace (drop rate: 1/1000)\n* Jar of decay (drop rate: 1/3000)\n* Vorki (drop rate: 1/3000)\n* Draconic visage (drop rate: 1/5000)\n* Skeletal visage (drop rate: 1/5000)\n\nSources:\n[2] OSRS Wiki, Vorkath page",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "boss_vorkath_loc",
+      "query": "Where is Vorkath located? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 20.35,
+      "success": true,
+      "response_preview": "Unfortunately, the provided OSRS Wiki context does not explicitly state Vorkath's location. However, based on the context of the Dragon Slayer II quest and similar game mechanics, it is likely that Vorkath can be found in the Wilderness or a designated monster area for elite monsters.\n\nTo find Vorkath specifically, I recommend checking the official OSRS Wiki, as this information may have been updated since the provided context.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "boss_vorkath_stats",
+      "query": "What is Vorkath's combat level? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 17.79,
+      "success": true,
+      "response_preview": "I couldn't find any information about Vorkath's combat level in the provided OSRS Wiki Context. It only mentions that Vorkath is an elite dragon and has a drop table with various items, but does not provide its combat level.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "boss_zulrah_strategy",
+      "query": "Describe Zulrah's phases briefly. Cite sources.",
+      "status": 200,
+      "elapsed_sec": 43.43,
+      "success": true,
+      "response_preview": "Zulrah's phases are as follows:\n\n* When Zulrah is green, it attacks with Ranged and is weak to Magic.\n* When Zulrah is blue, it attacks with Ranged and Magic and is weak to Ranged.\n* When Zulrah is red, it uses a typeless attack where it swings its tail at the player's position, which can be avoided by moving two tiles away. It is more resistant to damage in this phase but Magic is typically more effective than Ranged.\n\nSource: [OSRS Wiki - Zulrah/Strategies](https://oldschool.runescape.wiki/wiki/Zulrah/Strategies)",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "boss_zulrah_modality",
+      "query": "Can Zulrah be damaged by melee? Answer Yes or No and cite sources.",
+      "status": 200,
+      "elapsed_sec": 21.76,
+      "success": true,
+      "response_preview": "No. \n\"Zulrah is immune to poison, Category:Monsters immune to poison.\"\n\nSource: [1] Zulrah",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "boss_zulrah_maxhit",
+      "query": "What is Zulrah's max hit? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 16.74,
+      "success": true,
+      "response_preview": "Zulrah's maximum hit is:\n\n* 41 (Form 1: Serpentine)\n* 30 (Form 2: Magma)",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "boss_verzik_orb",
+      "query": "What are the mechanics of Verzik's green orb, and how do you avoid it? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 19.85,
+      "success": true,
+      "response_preview": "The user specifically asks about Verzik's green orb, but there is no mention of it in the provided OSRS Wiki contexts. However, based on the information provided for [1] Perfect Verzik, I can infer that you're likely referring to the \"Green bomb attack\" during phase 3.\n\nTo avoid taking damage from the Green bomb attack, players should:\n\n* Bounce the green bomb onto other players as many times as possible\n* Avoid taking the direct hit if it will continue to target another player or cannot be bounced further\n\nThis is a summary of the mechanics for avoiding damage from the Green bomb attack during phase 3.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "item_barrows_gloves_req",
+      "query": "What are the requirements to wear Barrows gloves? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 12.67,
+      "success": true,
+      "response_preview": "Not explicitly stated in the provided sources. Sources: Barrows gloves, Ham gloves, Gloves",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "item_whip_speed",
+      "query": "What is the attack speed of the Abyssal whip? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 17.79,
+      "success": true,
+      "response_preview": "According to the OSRS Wiki, the attack speed of the Abyssal whip is 4 ticks (or 2.4 seconds) as listed under \"Special melee weapons\" in [3] Attack speed.\n\nSource:\n[Table in Special melee weapons section]\n|-|Abyssal whip\n|4\n|2.4",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "item_dscim_str",
+      "query": "What is the strength bonus of the Dragon scimitar? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 41.01,
+      "success": true,
+      "response_preview": "The Dragon scimitar has a Strength Bonus of +66. \n\nSource: [1] OSRS Wiki Context: Dragon Scimitar, \"Combat stats\" section under \"Strength Bonus\".",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "loc_zul_andra",
+      "query": "Where is Zul-Andra located? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 18.8,
+      "success": true,
+      "response_preview": "Zul-Andra is located in Tirannwn, near Zulrah's Shrine. According to the OSRS Wiki, \"The Zul-Andra teleport is a teleport scroll that appears on the ground close to the player after Zulrah is defeated\" (Source: [2] Zul-Andra teleport (scenery)).",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "loc_barrows",
+      "query": "Where is the Barrows minigame located? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 18.23,
+      "success": true,
+      "response_preview": "The Barrow minigame is not located. There is no information about a \"Barrows\" minigame in the provided OSRS Wiki context. However, there is a section called \"Barrow\" which appears to be a piece of scenery found in the Evil twin random event, but it does not mention anything related to a minigame.\n\nIf you are referring to the Barrows instance, it is located near the Edgeville monastery and consists of six barrows: Dwarven, Mithril, Adamant, Rune, Dragon, and Chaos. \n\nPlease clarify which specific \"Barrows\" you are asking about, as there may be multiple interpretations.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "econ_vorkath_profitable",
+      "query": "Which Vorkath drops are commonly noted as profitable? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 32.8,
+      "success": true,
+      "response_preview": "The profitable Vorkath drops are:\n\n* Dragonbone necklace (1/1000 drop rate)\n* Jar of decay (1/3000 drop rate)\n* Draconic visage (1/5000 drop rate)\n* Skeletal visage (1/5000 drop rate)\n\nNote that these values come from the OSRS Wiki page on Vorkath.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "slayer_kraken_assign",
+      "query": "Which Slayer masters can assign Kraken? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 159.42,
+      "success": true,
+      "response_preview": "According to the OSRS Wiki, the Slayer masters who can assign Kraken are:\n\n* Chaeldar\n* Konar quo Maten\n* Nieve\n* Duradel\n\nThis is stated in the \"Assigned By\" section of the Kraken's monster page.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "clue_coordinate",
+      "query": "What are coordinate clues? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 15.79,
+      "success": true,
+      "response_preview": "Coordinate clues are not explicitly mentioned in the provided OSRS Wiki contexts.",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "pray_protect_magic",
+      "query": "What does Protect from Magic do? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 38.13,
+      "success": true,
+      "response_preview": "Yes. Protect from Magic grants players 100% resistance to almost all NPC magic attacks, and 40% resistance to magic attacks dealt by players. \n\n\"Protection from magical attacks.\" - OSRS Wiki Context [1]",
+      "sources_count": 10
+    },
+    {
+      "chat_id": "timeline_zulrah_release",
+      "query": "When was Zulrah released? Cite sources.",
+      "status": 200,
+      "elapsed_sec": 38.42,
+      "success": true,
+      "response_preview": "According to the OSRS Wiki, Zulrah was released on January 8th, 2015.",
+      "sources_count": 10
+    }
+  ]
+}

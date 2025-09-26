@@ -1,0 +1,192 @@
+{
+  "timestamp": "2025-09-23T13:51:21.679336",
+  "health": false,
+  "base": "http://localhost:5001",
+  "ran": 23,
+  "results": [
+    {
+      "chat_id": "boss_vorkath_drops",
+      "query": "What are Vorkath's unique drops? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103765160>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "boss_vorkath_loc",
+      "query": "Where is Vorkath located? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103765ac0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "boss_vorkath_stats",
+      "query": "What is Vorkath's combat level? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770490>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "boss_zulrah_strategy",
+      "query": "Describe Zulrah's phases briefly. Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103765c70>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "boss_zulrah_modality",
+      "query": "Can Zulrah be damaged by melee? Answer Yes or No and cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1037652b0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "boss_zulrah_maxhit",
+      "query": "What is Zulrah's max hit? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103741fa0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "boss_verzik_orb",
+      "query": "What are the mechanics of Verzik's green orb, and how do you avoid it? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1037418e0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "item_barrows_gloves_req",
+      "query": "What are the requirements to wear Barrows gloves? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770eb0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "item_whip_speed",
+      "query": "What is the attack speed of the Abyssal whip? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103741070>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "item_dscim_str",
+      "query": "What is the strength bonus of the Dragon scimitar? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103741c70>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "loc_zul_andra",
+      "query": "Where is Zul-Andra located? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770d30>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "loc_barrows",
+      "query": "Where is the Barrows minigame located? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770670>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "econ_vorkath_profitable",
+      "query": "Which Vorkath drops are commonly noted as profitable? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1037657c0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "slayer_kraken_assign",
+      "query": "Which Slayer masters can assign Kraken? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1037bf8e0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "clue_coordinate",
+      "query": "What are coordinate clues? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103765ca0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "pray_protect_magic",
+      "query": "What does Protect from Magic do? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103765910>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "timeline_zulrah_release",
+      "query": "When was Zulrah released? Cite sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770670>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "p_vorkath_drops",
+      "query": "List Vorkath-only loot; cite pages.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770250>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "p_vorkath_loc",
+      "query": "Pin down Vorkath's location with references.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103741400>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "p_vorkath_stats",
+      "query": "Give Vorkath combat level from sources only.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1037bf2b0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "p_zulrah_strategy",
+      "query": "Briefly outline Zulrah phase order; cite.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x103770fa0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "p_zulrah_modality",
+      "query": "Is melee viable on Zulrah? Answer yes/no with a quote.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1037701c0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    {
+      "chat_id": "p_zulrah_maxhit",
+      "query": "State Zulrah maximum damage; attach sources.",
+      "status": null,
+      "elapsed_sec": 0.0,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Max retries exceeded with url: /chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x1036fb8b0>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    }
+  ]
+}

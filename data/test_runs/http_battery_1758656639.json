@@ -1,0 +1,144 @@
+{
+  "timestamp": "2025-09-23T12:43:59.617832",
+  "health": true,
+  "base": "http://localhost:5001",
+  "ran": 17,
+  "results": [
+    {
+      "chat_id": "boss_vorkath_drops",
+      "query": "What are Vorkath's unique drops? Cite sources.",
+      "status": null,
+      "elapsed_sec": 21.53,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "boss_vorkath_loc",
+      "query": "Where is Vorkath located? Cite sources.",
+      "status": null,
+      "elapsed_sec": 20.43,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "boss_vorkath_stats",
+      "query": "What is Vorkath's combat level? Cite sources.",
+      "status": null,
+      "elapsed_sec": 67.79,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "boss_zulrah_strategy",
+      "query": "Describe Zulrah's phases briefly. Cite sources.",
+      "status": null,
+      "elapsed_sec": 46.26,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "boss_zulrah_modality",
+      "query": "Can Zulrah be damaged by melee? Answer Yes or No and cite sources.",
+      "status": null,
+      "elapsed_sec": 13.64,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "boss_zulrah_maxhit",
+      "query": "What is Zulrah's max hit? Cite sources.",
+      "status": null,
+      "elapsed_sec": 27.24,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "boss_verzik_orb",
+      "query": "What are the mechanics of Verzik's green orb, and how do you avoid it? Cite sources.",
+      "status": null,
+      "elapsed_sec": 75.64,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "item_barrows_gloves_req",
+      "query": "What are the requirements to wear Barrows gloves? Cite sources.",
+      "status": null,
+      "elapsed_sec": 12.01,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "item_whip_speed",
+      "query": "What is the attack speed of the Abyssal whip? Cite sources.",
+      "status": null,
+      "elapsed_sec": 71.99,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "item_dscim_str",
+      "query": "What is the strength bonus of the Dragon scimitar? Cite sources.",
+      "status": null,
+      "elapsed_sec": 95.9,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "loc_zul_andra",
+      "query": "Where is Zul-Andra located? Cite sources.",
+      "status": null,
+      "elapsed_sec": 33.59,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "loc_barrows",
+      "query": "Where is the Barrows minigame located? Cite sources.",
+      "status": null,
+      "elapsed_sec": 48.08,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "econ_vorkath_profitable",
+      "query": "Which Vorkath drops are commonly noted as profitable? Cite sources.",
+      "status": null,
+      "elapsed_sec": 52.29,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "slayer_kraken_assign",
+      "query": "Which Slayer masters can assign Kraken? Cite sources.",
+      "status": null,
+      "elapsed_sec": 180.01,
+      "success": false,
+      "error": "HTTPConnectionPool(host='localhost', port=5001): Read timed out. (read timeout=180)"
+    },
+    {
+      "chat_id": "clue_coordinate",
+      "query": "What are coordinate clues? Cite sources.",
+      "status": null,
+      "elapsed_sec": 42.07,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "pray_protect_magic",
+      "query": "What does Protect from Magic do? Cite sources.",
+      "status": null,
+      "elapsed_sec": 66.96,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    },
+    {
+      "chat_id": "timeline_zulrah_release",
+      "query": "When was Zulrah released? Cite sources.",
+      "status": null,
+      "elapsed_sec": 67.43,
+      "success": false,
+      "error": "isinstance expected 2 arguments, got 1"
+    }
+  ]
+}
