@@ -1580,123 +1580,22 @@ Relevant sections:"""
 
         logger.info(f"Dynamic context: {total_chars} chars → {context_tokens} tokens → {dynamic_ctx} ctx window")
 
-        # Create OSRS-specific prompt with hypothetical scenario handling (intent-aware)
-        intents = self.detect_query_intent(query)
-        base_instructions = [
-            "- Answer based ONLY on the provided OSRS wiki context",
-            "- Be accurate and provide mechanical explanations when possible",
-            "- If the user's question contains misconceptions, correct them clearly",
-            "- Look for WHY things work the way they do (game mechanics, requirements, limitations)",
-            "- If information isn't in the context, say so clearly and don't speculate",
-            "- When discussing combat, always consider weapon types, ranges, and requirements",
-        ]
-        if 'damage_modality' in intents:
-            base_instructions.extend([
-                "- Do NOT confuse an enemy's \"attack style(s)\" field (describes how the enemy attacks) with what the player can use.",
-                "  Determine viable player damage types using explicit phrases in the context like:",
-                "  \"immune to\", \"cannot be damaged by\", \"only damaged by\", \"weak to\", \"vulnerable to\", and Strategy/Mechanics text.",
-                "- If the context states immunity (e.g., immune to melee), answer that clearly and avoid implying the opposite.",
-                "- Format: First word must be a strict Yes or No; then one short sentence.",
-                "- Include one short direct quote from the provided context that states immunity/allowed damage (surrounded by quotes).",
-                "- If no explicit statement exists in the context, say 'Unknown from provided sources.' and stop.",
-            ])
-        if 'requirements' in intents:
-            base_instructions.extend([
-                "- Extract explicit requirements mentioned in the context (skills, quests, items).",
-                "- Distinguish equip requirements vs. acquisition/unlock requirements. If no equip level is stated, say so, and provide the unlock requirements instead.",
-                "- Present requirements clearly (bulleted or comma-separated) and keep it concise.",
-            ])
-        if 'drops' in intents:
-            base_instructions.extend([
-                "- List named drops shown in the context; note if the page explicitly marks them as \"unique\" or part of a drop table.",
-                "- Keep the answer short and attach the sources.",
-            ])
-        if 'location' in intents:
-            base_instructions.extend([
-                "- Provide a short location description using the context (e.g., area names, landmarks, directional phrases).",
-            ])
-        if 'stats' in intents:
-            base_instructions.extend([
-                "- Provide explicit stats found in the context (e.g., hitpoints, max hit, attack speed) and note any variation if indicated.",
-            ])
-        if 'strategy' in intents:
-            base_instructions.extend([
-                "- Summarize mechanics/strategy succinctly; focus on the key steps from the context.",
-            ])
-        if 'economy' in intents:
-            base_instructions.extend([
-                "- Use only the values/prices explicitly present in the provided context; do not assume live prices.",
-                "- Keep the answer short and attach the sources.",
-            ])
-        if 'lore' in intents:
-            base_instructions.extend([
-                "- Provide a brief lore/background summary strictly from the provided context.",
-            ])
-        if 'quests' in intents:
-            base_instructions.extend([
-                "- List explicit quest requirements/steps only if they appear in the context; otherwise say it's not stated.",
-            ])
-        if 'skills' in intents:
-            base_instructions.extend([
-                "- Summarize any training methods or XP details only if present; avoid inventing rates.",
-            ])
-        if 'items' in intents or 'equipment_stats' in intents:
-            base_instructions.extend([
-                "- Report explicit equipment stats/bonuses and effects only if present in the context.",
-            ])
-        if 'npcs' in intents:
-            base_instructions.extend([
-                "- If combat info is requested, cite bestiary/stat lines from the context; otherwise keep NPC descriptions concise.",
-            ])
-        if 'minigames' in intents:
-            base_instructions.extend([
-                "- Summarize objectives/rewards based on the context; keep it short.",
-            ])
-        if 'combat_mechanics' in intents:
-            base_instructions.extend([
-                "- Explain mechanics succinctly using explicit lines from the context (ticks, prayer interactions, phases).",
-            ])
-        if 'comparison' in intents:
-            base_instructions.extend([
-                "- Compare only facts present in the context; if one side is missing, state there isn't enough evidence.",
-            ])
-        if 'timeline' in intents:
-            base_instructions.extend([
-                "- Cite explicit update/patch notes text and dates from the context if present.",
-            ])
-        if 'slayer' in intents:
-            base_instructions.extend([
-                "- Mention assignment/master/task details only if explicitly present; otherwise say it's not stated.",
-            ])
-        if 'clue' in intents:
-            base_instructions.extend([
-                "- Quote the exact clue line(s) from the context when providing the solution.",
-            ])
-        if 'spell_prayer' in intents:
-            base_instructions.extend([
-                "- Quote exact spell/prayer effects or levels only if present in the context; otherwise state it's not included.",
-            ])
+        # Simple, effective instructions - no complex conditional logic
+        # No complex conditional logic needed
 
-        base_instructions.extend([
-            "- For hypothetical scenarios or speculation about new content:",
-            "  * Acknowledge the speculative nature",
-            "  * Use your OSRS knowledge to provide strategic analysis based on similar existing mechanics",
-            "  * Focus on practical advice using established game patterns",
-            "  * Consider economic implications based on similar historical updates",
-            "- Parse all types of wiki data formats flexibly - stats can appear in many different layouts",
-            "- Only include additional context if directly relevant to the specific question asked",
-        ])
-        instructions = "\n".join(base_instructions)
+        # Simplified, effective prompt
+        prompt = f"""You are a knowledgeable Old School RuneScape assistant. Answer the user's question using the provided wiki information.
 
-        prompt = f"""You are an expert Old School RuneScape (OSRS) assistant. Use the following OSRS wiki information to answer the user's question directly and precisely.
-
-OSRS Wiki Context:
+OSRS Wiki Information:
 {context}
 
-User Question: {query}
+Question: {query}
 
 Instructions:
-{instructions}
+- Answer directly and clearly based on the wiki information provided
+- Include specific stats, numbers, and details when available
+- If the information isn't in the context, say so
+- Keep your response focused and helpful
 
 Answer:"""
 
@@ -2555,37 +2454,20 @@ Answer:"""
         yield {"stage": "metrics", "progress": 50, "message": "Planned token budget.",
                "metrics": {"context_tokens": context_tokens, "response_tokens": response_tokens, "ctx_window": dynamic_ctx}}
 
-        # Build prompt (reuse same instruction logic)
-        intents = self.detect_query_intent(enhanced_question)
-        base_instructions = [
-            "- Answer based ONLY on the provided OSRS wiki context",
-            "- Be accurate and provide mechanical explanations when possible",
-            "- If the user's question contains misconceptions, correct them clearly",
-            "- Look for WHY things work the way they do (game mechanics, requirements, limitations)",
-            "- If information isn't in the context, say so clearly and don't speculate",
-            "- When discussing combat, always consider weapon types, ranges, and requirements",
-        ]
-        if 'damage_modality' in intents:
-            base_instructions.extend([
-                "- Do NOT confuse an enemy's \"attack style(s)\" field (describes how the enemy attacks) with what the player can use.",
-                "  Determine viable player damage types using explicit phrases in the context like:",
-                "  \"immune to\", \"cannot be damaged by\", \"only damaged by\", \"weak to\", \"vulnerable to\", and Strategy/Mechanics text.",
-                "- If the context states immunity (e.g., immune to melee), answer that clearly and avoid implying the opposite.",
-                "- Format: First word must be a strict Yes or No; then one short sentence.",
-                "- Include one short direct quote from the provided context that states immunity/allowed damage (surrounded by quotes).",
-                "- If no explicit statement exists in the context, say 'Unknown from provided sources.' and stop.",
-            ])
-        # (trim: other intents handled similarly as in generate_response)
-        instructions = "\n".join(base_instructions)
-        prompt = f"""You are an expert Old School RuneScape (OSRS) assistant. Use the following OSRS wiki information to answer the user's question directly and precisely.
+        # Simple prompt building - no complex conditional logic
+        # Simplified streaming prompt
+        prompt = f"""You are a knowledgeable Old School RuneScape assistant. Answer the user's question using the provided wiki information.
 
-OSRS Wiki Context:
+OSRS Wiki Information:
 {context}
 
-User Question: {enhanced_question}
+Question: {enhanced_question}
 
 Instructions:
-{instructions}
+- Answer directly and clearly based on the wiki information provided
+- Include specific stats, numbers, and details when available
+- If the information isn't in the context, say so
+- Keep your response focused and helpful
 
 Answer:"""
 
