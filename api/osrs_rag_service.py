@@ -780,9 +780,10 @@ class OSRSRAGService:
             title_lower = title.lower()
             text_val = (content_data.get('text') or '')
 
-            # Title/query lexical alignment (generic)
+            # EXACT TITLE MATCH gets massive boost - this is the most important signal
             if title_lower == query_lower:
-                similarities[i] = min(similarities[i] + 0.4, 1.0)
+                similarities[i] = min(similarities[i] + 0.8, 1.0)  # Massive boost for exact title match
+            # Base title matching (canonical form)
             elif title_lower in query_lower:
                 similarities[i] = min(similarities[i] + 0.25, 1.0)
             elif query_lower in title_lower:
@@ -793,10 +794,11 @@ class OSRSRAGService:
                         similarities[i] = min(similarities[i] + 0.15, 1.0)
                         break
 
-            # Structural priors (organic, content-derived)
+            # Strong penalty for variant pages (with parentheses) when exact match exists
             bt = _base_title(title)
-            if bt and base_title_counts.get(bt, 0) > 1 and title != bt:
-                similarities[i] = max(similarities[i] - 0.06, -1.0)  # prefer canonical/short titles over variants
+            if bt and base_title_counts.get(bt, 0) > 1 and title != bt and '(' in title:
+                # Heavy penalty for variants when we have an exact match query
+                similarities[i] = max(similarities[i] - 0.2, -1.0)
 
             # Penalize extremely short pages; reward section-rich pages slightly
             L = len(text_val)
