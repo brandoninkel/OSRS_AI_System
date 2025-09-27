@@ -1833,14 +1833,17 @@ Answer:"""
                     cats = content.get('categories', []) or []
                     bonus = 0.0
 
-                    # CRITICAL: Exact title match gets massive boost (same as search endpoint)
+                    # CRITICAL: Exact title match gets massive boost (compare against ORIGINAL query, not sub-query)
                     original_query_lower = query.lower().strip()
                     title_lower = title.lower().strip()
                     if title_lower == original_query_lower:
-                        bonus += 0.8  # Massive boost for exact title match
-                    # Penalty for variant pages with parentheses
+                        bonus += 2.0  # MASSIVE boost for exact title match to original query
+                    # Also check if title matches any key terms from original query
+                    elif any(term in title_lower for term in original_query_lower.split() if len(term) > 3):
+                        bonus += 0.5  # Moderate boost for partial matches
+                    # Heavy penalty for variant pages with parentheses
                     elif '(' in title:
-                        bonus -= 0.2
+                        bonus -= 0.5
 
                     # Light category weighting for strategy/location
                     cl = [str(c).lower() for c in cats]
