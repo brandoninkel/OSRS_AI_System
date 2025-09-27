@@ -1832,6 +1832,16 @@ Answer:"""
                     bt = _base_title(title)
                     cats = content.get('categories', []) or []
                     bonus = 0.0
+
+                    # CRITICAL: Exact title match gets massive boost (same as search endpoint)
+                    original_query_lower = query.lower().strip()
+                    title_lower = title.lower().strip()
+                    if title_lower == original_query_lower:
+                        bonus += 0.8  # Massive boost for exact title match
+                    # Penalty for variant pages with parentheses
+                    elif '(' in title:
+                        bonus -= 0.2
+
                     # Light category weighting for strategy/location
                     cl = [str(c).lower() for c in cats]
                     if ('strategy' in intents) and any('slayer' in c or 'monster' in c for c in cl):
