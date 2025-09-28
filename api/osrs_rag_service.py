@@ -659,12 +659,39 @@ class OSRSRAGService:
             title = (content_data.get('title') or '').strip()
             title_lower = title.lower()
 
-            # EXACT TITLE MATCH gets massive boost - this is the most important signal
+            # Enhanced title matching with key term extraction
+            import re
+            key_terms = []
+
+            # Extract quoted terms
+            quoted_terms = re.findall(r'"([^"]+)"', query)
+            key_terms.extend([t.lower().strip() for t in quoted_terms])
+
+            # Extract potential item names
+            words = query_lower.split()
+            potential_items = []
+            for i, word in enumerate(words):
+                if len(word) > 3:
+                    potential_items.append(word)
+                    if i < len(words) - 1:
+                        two_word = f"{word} {words[i+1]}"
+                        if len(two_word) > 6:
+                            potential_items.append(two_word)
+
+            key_terms.extend(potential_items)
+
+            # EXACT TITLE MATCH gets massive boost
             if title_lower == query_lower:
-                similarities[i] = min(similarities[i] + 0.8, 1.0)  # Massive boost for exact title match
-            # Strong penalty for variant pages (with parentheses) when exact match exists
-            elif '(' in title:
-                similarities[i] = max(similarities[i] - 0.2, -1.0)
+                similarities[i] = min(similarities[i] + 1.0, 1.0)  # Perfect match
+            # Check if title exactly matches any key terms
+            elif any(title_lower == term for term in key_terms):
+                similarities[i] = min(similarities[i] + 0.9, 1.0)  # Very high boost
+            # Partial key term matches
+            elif any(term in title_lower for term in key_terms if len(term) > 4):
+                similarities[i] = min(similarities[i] + 0.3, 1.0)  # Moderate boost
+            # Heavy penalty for variant pages when exact matches exist
+            elif '(' in title and any(title_lower.split('(')[0].strip() == term for term in key_terms):
+                similarities[i] = max(similarities[i] - 0.5, -1.0)  # Heavy penalty
 
         # Get top results
         top_indices = np.argsort(similarities)[::-1][:top_k * 2]  # Get extra for filtering
@@ -1266,43 +1293,7 @@ Relevant sections:"""
             if search_terms:
                 logger.info(f"Extracted search terms: {search_terms}")
                 semantic_results = self.semantic_tool_search(query, search_terms)
-        # Guard against hallucination when evidence is absent for certain intents
-        intents = self.detect_query_intent(query)
-        try:
-            import re as _re
-            ctx_l = " ".join([(d.get('text') or '') for d in (context_data or [])]).lower()
-        except Exception:
-            ctx_l = ""
-        if 'requirements' in intents:
-            try:
-                pats = self._intent_patterns({'requirements'})
-                if not any(_re.search(p, ctx_l) for p in pats):
-                    return ("The provided sources do not state explicit requirements. "
-                            "If equip requirements are not stated in these sources, treat them as not specified here. "
-                            "Acquisition/unlock requirements are also not listed in the provided context.")
-            except Exception:
-                pass
-        if 'location' in intents:
-            try:
-                pats = self._intent_patterns({'location'})
-                if not any(_re.search(p, ctx_l) for p in pats):
-                    return ("Unknown from provided sources.")
-            except Exception:
-                pass
-        if 'stats' in intents:
-            try:
-                pats = self._intent_patterns({'stats'})
-                if not any(_re.search(p, ctx_l) for p in pats):
-                    return ("Unknown from provided sources.")
-            except Exception:
-                pass
-        if 'drops' in intents:
-            try:
-                pats = self._intent_patterns({'drops'})
-                if not any(_re.search(p, ctx_l) for p in pats):
-                    return ("Unknown from provided sources.")
-            except Exception:
-                pass
+        # No complex intent-based logic - let the AI read and understand naturally
 
         if 'semantic_results' in locals() and semantic_results:
             # Combine original results with semantic results
@@ -1323,70 +1314,9 @@ Relevant sections:"""
         context = "\n\n".join(context_parts)
 
 
-        # Fast grounded verdict for damage modality (organic text scan; no hardcoded entities)
-        intents = self.detect_query_intent(query)
-        if 'damage_modality' in intents:
-            try:
-                import re as _re
-                neg_patterns = [
-                    r"immune to melee",
-                    r"cannot be damaged by melee",
-                    r"melee (?:cannot|can't|won't) (?:hit|damage|affect)",
-                    r"only (?:damaged|affected|harmed|hit|attacked) by (?:magic|ranged)",
-                    r"can only be (?:damaged|affected|harmed|hit|attacked) by (?:magic|ranged)",
-                    r"must use (?:magic|ranged)"
-                ]
-                pos_patterns = [
-                    r"can be damaged by melee",
-                    r"melee (?:can|does) (?:hit|damage|affect)",
-                    r"vulnerable to melee",
-                    r"weak to melee"
-                ]
-                for d in targeted_data:
-                    t = (d.get('text') or '')
-                    tl = t.lower()
-                    for pat in neg_patterns:
-                        m = _re.search(pat, tl)
-                        if m:
-                            quote_line = next((ln.strip() for ln in t.split('\n') if m.group(0) in ln.lower()), m.group(0))
-                            src = f"{d.get('title') or ''}"
-                            return f"No.\nQuote: \"{quote_line[:240]}\"\nSource: {src}"
-                    for pat in pos_patterns:
-                        m = _re.search(pat, tl)
-                        if m:
-                            quote_line = next((ln.strip() for ln in t.split('\n') if m.group(0) in ln.lower()), m.group(0))
-                            src = f"{d.get('title') or ''}"
-                            return f"Yes.\nQuote: \"{quote_line[:240]}\"\nSource: {src}"
-            except Exception:
-                pass
+        # No hardcoded pattern matching - let the AI understand naturally
 
-        # Strict extraction for requirements: only report explicit lines if present
-        if 'requirements' in intents:
-            try:
-                import re as _re2
-                req_lines: List[Tuple[str, str]] = []
-                line_pats = [
-                    r"\brequires?\b.{0,100}\b(level|lvl|quest|skill|completion)\b",
-                    r"\bto (?:wear|equip)\b.{0,80}\b(level|lvl)\b",
-                    r"\brequirements?\b\s*:\s*",
-                ]
-                for d in targeted_data:
-                    t = (d.get('text') or '')
-                    title = d.get('title') or ''
-                    for ln in t.split('\n'):
-                        lnl = ln.lower()
-                        if any(_re2.search(p, lnl) for p in line_pats):
-                            req_lines.append((ln.strip(), title))
-                if req_lines:
-                    parts = ["Extracted from wiki (explicit lines):"]
-                    for ln, src in req_lines[:8]:
-                        parts.append(f"- \"{ln[:220]}\" — {src}")
-                    return "\n".join(parts)
-                else:
-                    src_titles = ", ".join({(d.get('title') or '') for d in targeted_data[:5] if d.get('title')})
-                    return f"Not explicitly stated in the provided sources. Sources: {src_titles}"
-            except Exception:
-                pass
+        # No hardcoded requirement extraction - let the AI read and understand
 
         # Calculate dynamic context window based on actual content
         context_tokens = int(len(context) // 3.5)  # More accurate token estimation
@@ -1403,8 +1333,8 @@ Relevant sections:"""
         # Simple, effective instructions - no complex conditional logic
         # No complex conditional logic needed
 
-        # Simplified, effective prompt
-        prompt = f"""You are a knowledgeable Old School RuneScape assistant. Answer the user's question using the provided wiki information.
+        # Enhanced prompt for better reading comprehension and reasoning
+        prompt = f"""You are a knowledgeable Old School RuneScape assistant. Read the provided wiki information carefully and answer the user's question accurately.
 
 OSRS Wiki Information:
 {context}
@@ -1412,10 +1342,12 @@ OSRS Wiki Information:
 Question: {query}
 
 Instructions:
-- Answer directly and clearly based on the wiki information provided
-- Include specific stats, numbers, and details when available
-- If the information isn't in the context, say so
-- Keep your response focused and helpful
+- Read the wiki information carefully and thoroughly
+- Answer based ONLY on what is explicitly stated in the provided information
+- Pay close attention to numbers, requirements, and specific details
+- If you need to make logical inferences, explain your reasoning clearly
+- If information is missing or unclear, state that explicitly
+- Double-check your facts against the provided context before answering
 
 Answer:"""
 
@@ -1836,14 +1768,42 @@ Answer:"""
                     # CRITICAL: Exact title match gets massive boost (compare against ORIGINAL query, not sub-query)
                     original_query_lower = query.lower().strip()
                     title_lower = title.lower().strip()
+
+                    # Extract key item/entity names from original query for precise matching
+                    import re
+                    # Look for quoted terms, proper nouns, or key OSRS item patterns
+                    key_terms = []
+
+                    # Extract quoted terms
+                    quoted_terms = re.findall(r'"([^"]+)"', query)
+                    key_terms.extend([t.lower().strip() for t in quoted_terms])
+
+                    # Extract potential item names (capitalized words, common OSRS patterns)
+                    words = original_query_lower.split()
+                    potential_items = []
+                    for i, word in enumerate(words):
+                        if len(word) > 3:  # Skip short words
+                            potential_items.append(word)
+                            # Check for multi-word items
+                            if i < len(words) - 1:
+                                two_word = f"{word} {words[i+1]}"
+                                if len(two_word) > 6:
+                                    potential_items.append(two_word)
+
+                    key_terms.extend(potential_items)
+
+                    # Exact title match gets massive boost
                     if title_lower == original_query_lower:
-                        bonus += 2.0  # MASSIVE boost for exact title match to original query
-                    # Also check if title matches any key terms from original query
-                    elif any(term in title_lower for term in original_query_lower.split() if len(term) > 3):
-                        bonus += 0.5  # Moderate boost for partial matches
-                    # Heavy penalty for variant pages with parentheses
-                    elif '(' in title:
-                        bonus -= 0.5
+                        bonus += 3.0  # MASSIVE boost for exact title match
+                    # Check if title exactly matches any key terms
+                    elif any(title_lower == term for term in key_terms):
+                        bonus += 2.5  # Very high boost for exact key term match
+                    # Partial key term matches
+                    elif any(term in title_lower for term in key_terms if len(term) > 4):
+                        bonus += 1.0  # Good boost for partial matches
+                    # Heavy penalty for variant pages with parentheses when we have exact matches
+                    elif '(' in title and any(title_lower.split('(')[0].strip() == term for term in key_terms):
+                        bonus -= 1.0  # Heavy penalty for variants when exact match exists
 
                     # Light category weighting for strategy/location
                     cl = [str(c).lower() for c in cats]
