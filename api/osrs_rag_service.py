@@ -1088,34 +1088,64 @@ Relevant sections:"""
         quoted_terms = re.findall(r'"([^"]+)"', query) + re.findall(r"'([^']+)'", query)
         research_terms.extend(quoted_terms)
 
-        # Extract capitalized terms that look like OSRS items/locations/NPCs
-        osrs_pattern = r'\b[A-Z][a-z]*(?:\s+[A-Z][a-z]*)*\b'
-        query_terms = re.findall(osrs_pattern, query)
-        response_terms = re.findall(osrs_pattern, response)
+        # Extract OSRS-specific terms (items, locations, NPCs, bosses)
+        # Focus on proper nouns that are likely to be OSRS entities
+        osrs_patterns = [
+            r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b',  # Proper nouns like "Dragon Scimitar", "Grand Exchange"
+            r'\b[A-Z][a-z]*(?:\'s)?\s+[A-Z][a-z]+\b',  # Possessive forms like "Zulrah's"
+        ]
 
-        # Filter for likely OSRS terms (avoid common words)
-        common_words = {'The', 'This', 'That', 'However', 'According', 'Based', 'If', 'When', 'Where', 'What', 'How', 'Why'}
-        osrs_terms = [term for term in query_terms + response_terms if term not in common_words and len(term) > 2]
-        research_terms.extend(osrs_terms)
+        all_terms = []
+        for pattern in osrs_patterns:
+            all_terms.extend(re.findall(pattern, query))
+            all_terms.extend(re.findall(pattern, response))
+
+        # Filter for likely OSRS terms (avoid common words and sentence fragments)
+        common_words = {
+            'The', 'This', 'That', 'However', 'According', 'Based', 'If', 'When', 'Where',
+            'What', 'How', 'Why', 'There', 'Here', 'Since', 'While', 'During', 'After',
+            'Before', 'Above', 'Below', 'Under', 'Over', 'Through', 'Between', 'Among',
+            'Without', 'Within', 'Against', 'Towards', 'Beyond', 'Behind', 'Beside',
+            'Do I', 'Can I', 'Will I', 'Should I', 'Could I', 'Would I', 'May I',
+            'They', 'We', 'You', 'He', 'She', 'It', 'These', 'Those', 'Some', 'Many',
+            'Few', 'All', 'Most', 'Each', 'Every', 'Any', 'No', 'None'
+        }
+
+        # Additional filtering for sentence fragments and non-OSRS terms
+        filtered_terms = []
+        for term in all_terms:
+            clean_term = term.strip().strip('.,!?')
+            if (clean_term and
+                clean_term not in common_words and
+                len(clean_term) > 2 and
+                not clean_term.startswith('s ') and  # Avoid fragments like "s a secret boss"
+                not clean_term.endswith(' called') and  # Avoid fragments like "boss called"
+                not any(word in clean_term.lower() for word in ['information', 'question', 'answer', 'section', 'article'])):
+                filtered_terms.append(clean_term)
+
+        research_terms.extend(filtered_terms)
 
         # Extract terms mentioned in uncertainty contexts
         uncertainty_contexts = [
-            r"no information.*?about\s+([^.]+)",
-            r"not mentioned.*?about\s+([^.]+)",
-            r"unclear.*?regarding\s+([^.]+)",
-            r"would need.*?information.*?about\s+([^.]+)"
+            r"no information.*?about\s+([A-Za-z\s]+?)(?:\.|,|$)",
+            r"not mentioned.*?about\s+([A-Za-z\s]+?)(?:\.|,|$)",
+            r"unclear.*?regarding\s+([A-Za-z\s]+?)(?:\.|,|$)",
+            r"would need.*?information.*?about\s+([A-Za-z\s]+?)(?:\.|,|$)"
         ]
 
         for pattern in uncertainty_contexts:
             matches = re.findall(pattern, response, re.IGNORECASE)
-            research_terms.extend(matches)
+            research_terms.extend([match.strip() for match in matches])
 
         # Remove duplicates and clean up
         unique_terms = []
         seen = set()
         for term in research_terms:
             clean_term = term.strip().strip('.,!?')
-            if clean_term and clean_term.lower() not in seen and len(clean_term) > 2:
+            if (clean_term and
+                clean_term.lower() not in seen and
+                len(clean_term) > 2 and
+                len(clean_term.split()) <= 4):  # Avoid overly long phrases
                 unique_terms.append(clean_term)
                 seen.add(clean_term.lower())
 
