@@ -1039,6 +1039,10 @@ Relevant sections:"""
 
             logger.info(f"Extracted research terms: {research_terms}")
 
+            # Get AI guidance on which wiki sections to target
+            target_sections = self._ai_guided_section_targeting(original_query, research_terms)
+            logger.info(f"AI-guided target sections: {target_sections}")
+
             # Perform follow-up queries for each research term
             additional_context = []
             for term in research_terms[:3]:  # Limit to 3 follow-up queries to avoid excessive API calls
@@ -1051,6 +1055,17 @@ Relevant sections:"""
                     if candidate.get('title', '') not in initial_titles and score > 0.7:
                         additional_context.append(candidate)
                         logger.info(f"Added follow-up context: {candidate.get('title', 'Unknown')}")
+
+            # Also search for target sections if specified
+            if target_sections:
+                for section in target_sections[:2]:  # Limit to 2 sections
+                    logger.info(f"Searching for section: {section}")
+                    section_candidates = self.find_similar_content(section, top_k=3)
+                    initial_titles = {ctx.get('title', '') for ctx in initial_context + additional_context}
+                    for candidate, score in section_candidates:
+                        if candidate.get('title', '') not in initial_titles and score > 0.6:  # Slightly lower threshold for sections
+                            additional_context.append(candidate)
+                            logger.info(f"Added section context: {candidate.get('title', 'Unknown')}")
 
             if not additional_context:
                 logger.info("No additional context found in follow-up research")
@@ -1072,7 +1087,7 @@ Relevant sections:"""
 
     def _extract_research_terms(self, query: str, response: str) -> List[str]:
         """
-        Extract key terms from query and response that might benefit from additional research
+        Use AI to intelligently extract key research terms from query and response
 
         Args:
             query: Original user query
@@ -1081,75 +1096,167 @@ Relevant sections:"""
         Returns:
             List of research terms to investigate further
         """
-        research_terms = []
+        try:
+            # Use AI to analyze what terms are most important for follow-up research
+            extraction_prompt = f"""Analyze this OSRS question and response to identify the most important terms that need additional research.
 
-        # Extract quoted terms from query (user specifically mentioned)
-        import re
-        quoted_terms = re.findall(r'"([^"]+)"', query) + re.findall(r"'([^']+)'", query)
-        research_terms.extend(quoted_terms)
+USER QUESTION: {query}
 
-        # Extract OSRS-specific terms (items, locations, NPCs, bosses)
-        # Focus on proper nouns that are likely to be OSRS entities
-        osrs_patterns = [
-            r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b',  # Proper nouns like "Dragon Scimitar", "Grand Exchange"
-            r'\b[A-Z][a-z]*(?:\'s)?\s+[A-Z][a-z]+\b',  # Possessive forms like "Zulrah's"
-        ]
+AI RESPONSE: {response}
 
-        all_terms = []
-        for pattern in osrs_patterns:
-            all_terms.extend(re.findall(pattern, query))
-            all_terms.extend(re.findall(pattern, response))
+Your task: Extract 3-5 key terms that would help find missing information. Focus on:
+- OSRS entities (bosses, items, locations, NPCs, skills, quests)
+- Concepts the user is asking about (like "drops", "requirements", "strategies")
+- Terms mentioned in the response that indicate uncertainty or missing info
 
-        # Filter for likely OSRS terms (avoid common words and sentence fragments)
-        common_words = {
-            'The', 'This', 'That', 'However', 'According', 'Based', 'If', 'When', 'Where',
-            'What', 'How', 'Why', 'There', 'Here', 'Since', 'While', 'During', 'After',
-            'Before', 'Above', 'Below', 'Under', 'Over', 'Through', 'Between', 'Among',
-            'Without', 'Within', 'Against', 'Towards', 'Beyond', 'Behind', 'Beside',
-            'Do I', 'Can I', 'Will I', 'Should I', 'Could I', 'Would I', 'May I',
-            'They', 'We', 'You', 'He', 'She', 'It', 'These', 'Those', 'Some', 'Many',
-            'Few', 'All', 'Most', 'Each', 'Every', 'Any', 'No', 'None'
-        }
+Think like an OSRS player - what are the core concepts this question is about?
 
-        # Additional filtering for sentence fragments and non-OSRS terms
-        filtered_terms = []
-        for term in all_terms:
-            clean_term = term.strip().strip('.,!?')
-            if (clean_term and
-                clean_term not in common_words and
-                len(clean_term) > 2 and
-                not clean_term.startswith('s ') and  # Avoid fragments like "s a secret boss"
-                not clean_term.endswith(' called') and  # Avoid fragments like "boss called"
-                not any(word in clean_term.lower() for word in ['information', 'question', 'answer', 'section', 'article'])):
-                filtered_terms.append(clean_term)
+Examples of good extractions:
+- For "What does Zulrah drop?": ["Zulrah", "drops", "rare items"]
+- For "Dragon scimitar vs Abyssal whip?": ["Dragon scimitar", "Abyssal whip", "combat stats"]
+- For "How to get Fire Cape?": ["Fire Cape", "TzHaar Fight Cave", "requirements"]
 
-        research_terms.extend(filtered_terms)
+Return ONLY a Python list of 3-5 terms, nothing else:"""
 
-        # Extract terms mentioned in uncertainty contexts
-        uncertainty_contexts = [
-            r"no information.*?about\s+([A-Za-z\s]+?)(?:\.|,|$)",
-            r"not mentioned.*?about\s+([A-Za-z\s]+?)(?:\.|,|$)",
-            r"unclear.*?regarding\s+([A-Za-z\s]+?)(?:\.|,|$)",
-            r"would need.*?information.*?about\s+([A-Za-z\s]+?)(?:\.|,|$)"
-        ]
+            # Get AI analysis of important terms
+            extraction_response = self.llm.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": extraction_prompt}],
+                options={"temperature": 0.1, "num_predict": 100}
+            )
 
-        for pattern in uncertainty_contexts:
-            matches = re.findall(pattern, response, re.IGNORECASE)
-            research_terms.extend([match.strip() for match in matches])
+            # Parse the AI response to extract the list
+            import re
+            import ast
 
-        # Remove duplicates and clean up
-        unique_terms = []
-        seen = set()
-        for term in research_terms:
-            clean_term = term.strip().strip('.,!?')
-            if (clean_term and
-                clean_term.lower() not in seen and
-                len(clean_term) > 2 and
-                len(clean_term.split()) <= 4):  # Avoid overly long phrases
-                unique_terms.append(clean_term)
-                seen.add(clean_term.lower())
+            extraction_text = extraction_response['message']['content'].strip()
 
-        return unique_terms[:5]  # Limit to 5 terms
+            # Try to find a Python list in the response
+            list_match = re.search(r'\[([^\]]+)\]', extraction_text)
+            if list_match:
+                try:
+                    # Parse the list safely
+                    terms_list = ast.literal_eval('[' + list_match.group(1) + ']')
+                    if isinstance(terms_list, list):
+                        # Clean and validate terms
+                        clean_terms = []
+                        for term in terms_list:
+                            if isinstance(term, str) and len(term.strip()) > 2:
+                                clean_terms.append(term.strip().strip('"\''))
+                        return clean_terms[:5]
+                except:
+                    pass
+
+            # Fallback: extract quoted terms from the AI response
+            quoted_terms = re.findall(r'"([^"]+)"', extraction_text)
+            if quoted_terms:
+                return quoted_terms[:5]
+
+            # Final fallback: extract from original query using simple patterns
+            import re
+            fallback_terms = []
+
+            # Extract quoted terms from query (user specifically mentioned)
+            quoted_terms = re.findall(r'"([^"]+)"', query) + re.findall(r"'([^']+)'", query)
+            fallback_terms.extend(quoted_terms)
+
+            # Extract likely OSRS terms (capitalized words/phrases)
+            osrs_terms = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', query)
+            common_words = {'The', 'This', 'That', 'However', 'According', 'Based', 'If', 'When', 'Where', 'What', 'How', 'Why'}
+            osrs_terms = [term for term in osrs_terms if term not in common_words and len(term) > 2]
+            fallback_terms.extend(osrs_terms)
+
+            # Remove duplicates
+            unique_terms = []
+            seen = set()
+            for term in fallback_terms:
+                clean_term = term.strip().strip('.,!?')
+                if clean_term and clean_term.lower() not in seen:
+                    unique_terms.append(clean_term)
+                    seen.add(clean_term.lower())
+
+            return unique_terms[:5]
+
+        except Exception as e:
+            logger.warning(f"AI term extraction failed: {e}")
+            # Simple fallback extraction
+            import re
+            terms = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', query)
+            return [term for term in terms if len(term) > 2][:3]
+
+    def _ai_guided_section_targeting(self, query: str, research_terms: List[str]) -> List[str]:
+        """
+        Use AI to determine which wiki sections would contain the needed information
+
+        Args:
+            query: Original user query
+            research_terms: Key terms extracted for research
+
+        Returns:
+            List of section names/types to prioritize in search
+        """
+        try:
+            section_prompt = f"""You are an OSRS wiki expert. Based on this question and key terms, determine which wiki sections would contain the answer.
+
+USER QUESTION: {query}
+KEY TERMS: {research_terms}
+
+OSRS Wiki sections typically include:
+- Drops/Drop table (for item drops from monsters/bosses)
+- Combat info/Stats (for monster combat details)
+- Strategy/Tactics (for boss fight guides)
+- Requirements (for quest/activity requirements)
+- Locations (for where to find things)
+- Equipment/Bonuses (for item stats)
+- Training (for skill training methods)
+- Rewards (for quest/activity rewards)
+- Mechanics (for game mechanic explanations)
+- Trivia (for additional facts)
+
+Examples:
+- "What does Zulrah drop?" → ["Drops", "Drop table", "Unique drops"]
+- "How to fight Zulrah?" → ["Strategy", "Tactics", "Combat info", "Mechanics"]
+- "Dragon scimitar requirements?" → ["Requirements", "Equipment", "Stats"]
+- "Best magic training?" → ["Training", "Experience rates", "Methods"]
+
+Return ONLY a Python list of 3-5 section names that would contain the answer:"""
+
+            section_response = self.llm.chat(
+                model=self.model_name,
+                messages=[{"role": "user", "content": section_prompt}],
+                options={"temperature": 0.1, "num_predict": 100}
+            )
+
+            # Parse the AI response to extract section names
+            import re
+            import ast
+
+            section_text = section_response['message']['content'].strip()
+
+            # Try to find a Python list in the response
+            list_match = re.search(r'\[([^\]]+)\]', section_text)
+            if list_match:
+                try:
+                    sections_list = ast.literal_eval('[' + list_match.group(1) + ']')
+                    if isinstance(sections_list, list):
+                        clean_sections = []
+                        for section in sections_list:
+                            if isinstance(section, str) and len(section.strip()) > 2:
+                                clean_sections.append(section.strip().strip('"\''))
+                        return clean_sections[:5]
+                except:
+                    pass
+
+            # Fallback: extract quoted terms
+            quoted_sections = re.findall(r'"([^"]+)"', section_text)
+            if quoted_sections:
+                return quoted_sections[:5]
+
+            return []
+
+        except Exception as e:
+            logger.warning(f"AI section targeting failed: {e}")
+            return []
 
     def semantic_tool_search(self, query: str, search_terms: List[str]) -> List[Dict[str, Any]]:
         """
