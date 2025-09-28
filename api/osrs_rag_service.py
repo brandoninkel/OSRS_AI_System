@@ -997,6 +997,130 @@ Relevant sections:"""
         result = '\n'.join(extracted_parts)
         return result if result.strip() else text[:3000]  # Fallback to beginning
 
+    def _agentic_follow_up_research(self, original_query: str, initial_response: str, initial_context: List[Dict[str, Any]], chat_id: str = None) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Detect uncertainty in AI response and perform follow-up research to gather missing information
+
+        Args:
+            original_query: User's original question
+            initial_response: AI's initial response
+            initial_context: Initial context data used
+            chat_id: Chat session ID
+
+        Returns:
+            Tuple of (improved_response, expanded_context_data)
+        """
+        try:
+            # Check if response indicates uncertainty or missing information
+            uncertainty_indicators = [
+                "i don't have", "not mentioned", "not provided", "not explicitly stated",
+                "no information", "no specific information", "no direct answer",
+                "not clear", "uncertain", "unclear", "cannot confirm", "cannot determine",
+                "would need", "would require", "additional research", "more information",
+                "not available", "not found", "doesn't mention", "does not mention",
+                "based solely on", "without more context", "without explicit information"
+            ]
+
+            response_lower = initial_response.lower()
+            has_uncertainty = any(indicator in response_lower for indicator in uncertainty_indicators)
+
+            if not has_uncertainty:
+                logger.info("No uncertainty detected in response, skipping follow-up research")
+                return initial_response, initial_context
+
+            logger.info("Uncertainty detected in response, initiating follow-up research")
+
+            # Extract key terms that might need more research
+            research_terms = self._extract_research_terms(original_query, initial_response)
+
+            if not research_terms:
+                logger.info("No research terms extracted, skipping follow-up")
+                return initial_response, initial_context
+
+            logger.info(f"Extracted research terms: {research_terms}")
+
+            # Perform follow-up queries for each research term
+            additional_context = []
+            for term in research_terms[:3]:  # Limit to 3 follow-up queries to avoid excessive API calls
+                logger.info(f"Performing follow-up research for: {term}")
+                follow_up_candidates = self.find_similar_content(term, top_k=5)
+
+                # Add new content that wasn't in initial context
+                initial_titles = {ctx.get('title', '') for ctx in initial_context}
+                for candidate, score in follow_up_candidates:
+                    if candidate.get('title', '') not in initial_titles and score > 0.7:
+                        additional_context.append(candidate)
+                        logger.info(f"Added follow-up context: {candidate.get('title', 'Unknown')}")
+
+            if not additional_context:
+                logger.info("No additional context found in follow-up research")
+                return initial_response, initial_context
+
+            # Combine initial and additional context
+            expanded_context = initial_context + additional_context
+            logger.info(f"Expanded context from {len(initial_context)} to {len(expanded_context)} items")
+
+            # Regenerate response with expanded context
+            improved_response = self.generate_response(original_query, expanded_context)
+            logger.info("Generated improved response with expanded context")
+
+            return improved_response, expanded_context
+
+        except Exception as e:
+            logger.warning(f"Follow-up research failed: {e}")
+            return initial_response, initial_context
+
+    def _extract_research_terms(self, query: str, response: str) -> List[str]:
+        """
+        Extract key terms from query and response that might benefit from additional research
+
+        Args:
+            query: Original user query
+            response: AI response
+
+        Returns:
+            List of research terms to investigate further
+        """
+        research_terms = []
+
+        # Extract quoted terms from query (user specifically mentioned)
+        import re
+        quoted_terms = re.findall(r'"([^"]+)"', query) + re.findall(r"'([^']+)'", query)
+        research_terms.extend(quoted_terms)
+
+        # Extract capitalized terms that look like OSRS items/locations/NPCs
+        osrs_pattern = r'\b[A-Z][a-z]*(?:\s+[A-Z][a-z]*)*\b'
+        query_terms = re.findall(osrs_pattern, query)
+        response_terms = re.findall(osrs_pattern, response)
+
+        # Filter for likely OSRS terms (avoid common words)
+        common_words = {'The', 'This', 'That', 'However', 'According', 'Based', 'If', 'When', 'Where', 'What', 'How', 'Why'}
+        osrs_terms = [term for term in query_terms + response_terms if term not in common_words and len(term) > 2]
+        research_terms.extend(osrs_terms)
+
+        # Extract terms mentioned in uncertainty contexts
+        uncertainty_contexts = [
+            r"no information.*?about\s+([^.]+)",
+            r"not mentioned.*?about\s+([^.]+)",
+            r"unclear.*?regarding\s+([^.]+)",
+            r"would need.*?information.*?about\s+([^.]+)"
+        ]
+
+        for pattern in uncertainty_contexts:
+            matches = re.findall(pattern, response, re.IGNORECASE)
+            research_terms.extend(matches)
+
+        # Remove duplicates and clean up
+        unique_terms = []
+        seen = set()
+        for term in research_terms:
+            clean_term = term.strip().strip('.,!?')
+            if clean_term and clean_term.lower() not in seen and len(clean_term) > 2:
+                unique_terms.append(clean_term)
+                seen.add(clean_term.lower())
+
+        return unique_terms[:5]  # Limit to 5 terms
+
     def semantic_tool_search(self, query: str, search_terms: List[str]) -> List[Dict[str, Any]]:
         """
         Tool-based semantic search for when direct information isn't found
@@ -2005,6 +2129,9 @@ Answer:"""
 
         # Generate response
         response = self.generate_response(question, context_data)
+
+        # Agentic follow-up research if response indicates uncertainty
+        response, context_data = self._agentic_follow_up_research(question, response, context_data, chat_id)
 
         # Extract entities from the response for context tracking
         entities = self.extract_entities_from_response(question, response)
