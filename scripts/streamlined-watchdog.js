@@ -341,8 +341,9 @@ class StreamlinedOSRSWatchdog {
           }
         } else {
           console.log(chalk.green('✅ No changes detected, skipping embedding updates'));
-          console.log(chalk.gray('⏳ Waiting 30 seconds before next cycle...'));
-          await this.sleep(30 * 1000);
+          console.log(chalk.gray('⏳ Waiting 10 minutes before next cycle...'));
+          console.log(chalk.yellow('💡 Press any key to start cycle now'));
+          await this.waitWithKeypress(10 * 60 * 1000);
         }
 
       } catch (error) {
@@ -1850,6 +1851,30 @@ print(processed)
 
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async waitWithKeypress(ms) {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        process.stdin.removeAllListeners('data');
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        resolve();
+      }, ms);
+
+      // Set up keypress detection
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding('utf8');
+
+      process.stdin.once('data', () => {
+        clearTimeout(timeout);
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        console.log(chalk.green('\n⚡ Manual cycle triggered!'));
+        resolve();
+      });
+    });
   }
 }
 
