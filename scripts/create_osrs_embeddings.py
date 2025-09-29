@@ -28,10 +28,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class OSRSEmbeddingCreator:
-    def __init__(self):
-        # Paths
-        self.wiki_content_path = "/Users/brandon/Documents/projects/GE/data/osrs_wiki_content.jsonl"
-        self.embeddings_output_path = "/Users/brandon/Documents/projects/GE/data/osrs_embeddings.jsonl"
+    def __init__(self, progress_mode=False):
+        # Paths - use relative paths from script location
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.wiki_content_path = os.path.join(repo_root, "data", "osrs_wiki_content.jsonl")
+        self.embeddings_output_path = os.path.join(repo_root, "data", "osrs_embeddings.jsonl")
+
+        # Progress reporting mode
+        self.progress_mode = progress_mode
 
         # Initialize embedding service
         config = EmbeddingConfig(
@@ -44,6 +48,12 @@ class OSRSEmbeddingCreator:
 
         # Ensure output directory exists
         os.makedirs(os.path.dirname(self.embeddings_output_path), exist_ok=True)
+
+    def report_progress(self, progress_percent, status="processing"):
+        """Report progress for orchestration monitoring"""
+        if self.progress_mode:
+            print(f"Progress: {progress_percent:.1f}%", flush=True)
+            print(f"Status: {status}", flush=True)
 
     def load_wiki_content(self) -> List[Dict[str, Any]]:
         """Load OSRS wiki content from JSONL file"""
@@ -144,7 +154,9 @@ class OSRSEmbeddingCreator:
     def notify_rag_update(self):
         """Notify the RAG service (if running) to reload embeddings via SIGUSR1."""
         try:
-            pid_file = os.getenv('OSRS_RAG_PID_FILE', '/Users/brandon/Documents/projects/GE/data/rag_service.pid')
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            default_pid_file = os.path.join(repo_root, "data", "rag_service.pid")
+            pid_file = os.getenv('OSRS_RAG_PID_FILE', default_pid_file)
             if os.path.exists(pid_file):
                 with open(pid_file, 'r') as pf:
                     pid_str = pf.read().strip()
@@ -228,15 +240,111 @@ class OSRSEmbeddingCreator:
                 logger.info(f"🔄 Chunk {cidx+1}/{total_chunks} | {done}/{total} done | wrote {written} | failed {failed} | {rate:.1f}/s")
         return written
 
+    def embed_and_append_with_progress(self, pages: List[Dict[str, Any]], use_async: bool = False, chunk_size: int = 200) -> int:
+        """Embed provided pages in chunks and append to embeddings file with progress reporting."""
+        if not pages:
+            return 0
+        total = len(pages)
+        total_chunks = (total + chunk_size - 1) // chunk_size
+        written = 0
+        failed = 0
+        start_time = time.time()
+
+        with open(self.embeddings_output_path, 'a', encoding='utf-8') as f:
+            for cidx in range(total_chunks):
+                start = cidx * chunk_size
+                end = min(start + chunk_size, total)
+                chunk = pages[start:end]
+
+                # Calculate progress (50% base + 50% for embedding progress)
+                base_progress = 50
+                embedding_progress = (cidx / total_chunks) * 50
+                total_progress = base_progress + embedding_progress
+                self.report_progress(total_progress, f"embedding chunk {cidx+1}/{total_chunks}")
+
+                texts_to_embed = []
+                page_metadata = []
+                for page in chunk:
+                    texts_to_embed.append(self.prepare_text_for_embedding(page))
+                    page_metadata.append({
+                        'title': page.get('title', 'Unknown'),
+                        'categories': page.get('categories', []),
+                        'revid': page.get('revid'),
+                        'timestamp': page.get('timestamp'),
+                        'text_length': len(page.get('text', ''))
+                    })
+
+                # Embed this chunk
+                if use_async:
+                    embeddings = asyncio.run(self.embedding_service.embed_texts_async(texts_to_embed))
+                else:
+                    embeddings = self.embedding_service.embed_texts(texts_to_embed)
+
+                # Append results immediately with exclusive file lock
+                try:
+                    fcntl.flock(f, fcntl.LOCK_EX)
+                except Exception:
+                    pass
+
+                for i, (embedding, metadata, original_text) in enumerate(zip(embeddings, page_metadata, texts_to_embed)):
+                    if embedding:
+                        embedding_data = {
+                            'id': int(datetime.now().timestamp()*1000) + i,
+                            'title': metadata['title'],
+                            'categories': metadata['categories'],
+                            'text': original_text,
+                            'embedding': embedding,
+                            'metadata': {
+                                'revid': metadata['revid'],
+                                'timestamp': metadata['timestamp'],
+                                'text_length': metadata['text_length'],
+                                'embedding_model': self.embedding_service.config.model_name,
+                                'created_at': datetime.now().isoformat()
+                            }
+                        }
+                        f.write(json.dumps(embedding_data) + '\n')
+                        written += 1
+                    else:
+                        failed += 1
+
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except Exception:
+                    pass
+                try:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                except Exception:
+                    pass
+
+                # Notify RAG service to reload
+                self.notify_rag_update()
+
+                elapsed = max(0.001, time.time() - start_time)
+                done = end
+                rate = done / elapsed
+                logger.info(f"🔄 Chunk {cidx+1}/{total_chunks} | {done}/{total} done | wrote {written} | failed {failed} | {rate:.1f}/s")
+
+        return written
+
     def run_incremental_once(self, limit: int = None, use_async: bool = False, chunk_size: int = 200) -> Dict[str, int]:
         """Run a single incremental pass: detect new/changed pages and append embeddings."""
+        self.report_progress(0, "loading wiki content")
         wiki_pages = self.load_wiki_content()
         if limit:
             wiki_pages = wiki_pages[:limit]
+
+        self.report_progress(20, "building existing index")
         existing_idx = self.build_existing_index()
+
+        self.report_progress(40, "selecting pages to embed")
         to_process = self.select_pages_to_embed(wiki_pages, existing_idx)
         logger.info(f"📊 Incremental: {len(to_process)} pages to embed (existing: {len(existing_idx)}) | chunk_size={chunk_size}")
-        written = self.embed_and_append(to_process, use_async=use_async, chunk_size=chunk_size)
+
+        self.report_progress(50, "embedding and appending")
+        written = self.embed_and_append_with_progress(to_process, use_async=use_async, chunk_size=chunk_size)
+
+        self.report_progress(100, "completed")
         return {"to_process": len(to_process), "written": written}
 
     def follow(self, interval_sec: int = 60, use_async: bool = False, chunk_size: int = 200):
@@ -322,6 +430,71 @@ class OSRSEmbeddingCreator:
         cache_stats = self.embedding_service.get_cache_stats()
         logger.info(f"📊 Cache stats: {cache_stats}")
 
+    def create_kg_entity_embeddings(self, use_async: bool = True, chunk_size: int = 100):
+        """Create embeddings for KG entities using high-performance async processing"""
+        import json
+        from pathlib import Path
+
+        # Load KG entities
+        kg_model_dir = Path(self.embeddings_output_path).parent / "kg_model"
+        entity_to_id_file = kg_model_dir / "entity_to_id.json"
+
+        if not entity_to_id_file.exists():
+            logger.error(f"No KG entities found at {entity_to_id_file}")
+            return
+
+        with open(entity_to_id_file, 'r') as f:
+            entity_to_id = json.load(f)
+
+        entities = list(entity_to_id.keys())
+        total_entities = len(entities)
+
+        logger.info(f"🚀 Processing {total_entities:,} KG entities with high-performance async embedding")
+        logger.info(f"⚡ Max concurrency: {self.embedding_service.config.max_concurrent_requests}")
+        logger.info(f"📦 Chunk size: {chunk_size}")
+
+        # Create fake wiki content entries for KG entities
+        kg_content = []
+        for entity_name in entities:
+            kg_content.append({
+                'title': entity_name,
+                'text': entity_name,  # Simple text for embedding
+                'source': 'knowledge_graph',
+                'kg_entity': True,
+                'entity_id': entity_to_id[entity_name],
+                'url': f"https://oldschool.runescape.wiki/w/{entity_name.replace(' ', '_')}"
+            })
+
+        # Use the high-performance async embedding pipeline
+        output_file = Path(self.embeddings_output_path).parent / "kg_entity_embeddings_mxbai.jsonl"
+
+        logger.info(f"🔥 Using async high-performance embedding pipeline")
+        logger.info(f"📁 Output file: {output_file}")
+
+        # Process in chunks with async
+        processed = 0
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for i in range(0, len(kg_content), chunk_size):
+                chunk = kg_content[i:i + chunk_size]
+
+                # Extract texts for embedding
+                texts = [item['text'] for item in chunk]
+
+                # Create embeddings using async service
+                embeddings = self.embedding_service.embed_texts(texts)
+
+                # Write results
+                for item, embedding in zip(chunk, embeddings):
+                    if embedding:
+                        item['embedding'] = embedding
+                        f.write(json.dumps(item) + '\n')
+                        processed += 1
+
+                f.flush()
+                logger.info(f"Processed {processed}/{total_entities} entities ({processed/total_entities*100:.1f}%)")
+
+        logger.info(f"✅ KG entity embeddings saved to: {output_file}")
+
     def test_embeddings(self) -> None:
         """Test the created embeddings"""
         logger.info("Testing embeddings...")
@@ -354,10 +527,12 @@ def main():
     parser.add_argument('--async', dest='async_mode', action='store_true', help='Use async embedding with concurrent requests')
     parser.add_argument('--max-concurrency', type=int, default=None, help='Max concurrent requests for async embedding (default config)')
     parser.add_argument('--chunk-size', type=int, default=200, help='Chunk size for streaming embedding/appends (default 200)')
+    parser.add_argument('--kg-entities-only', action='store_true', help='Process KG entities only (high-performance mode)')
     parser.add_argument('--test-embeddings', action='store_true', help='Load a few embeddings and print stats')
+    parser.add_argument('--progress-mode', action='store_true', help='Enable progress reporting for orchestration')
     args = parser.parse_args()
 
-    creator = OSRSEmbeddingCreator()
+    creator = OSRSEmbeddingCreator(progress_mode=args.progress_mode)
 
     # Optional override for max concurrency
     if args.max_concurrency is not None:
@@ -368,7 +543,11 @@ def main():
             pass
 
     # MODE SELECTION
-    if args.full:
+    if args.kg_entities_only:
+        # High-performance KG entities processing
+        logger.info("🚀 High-performance KG entities embedding mode")
+        creator.create_kg_entity_embeddings(use_async=args.async_mode, chunk_size=args.chunk_size)
+    elif args.full:
         if args.limit:
             logger.info(f"Full rebuild with limit={args.limit}")
         creator.create_embeddings(limit=args.limit)
