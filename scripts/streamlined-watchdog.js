@@ -57,6 +57,13 @@ class StreamlinedOSRSWatchdog {
       errors: 0
     };
 
+    // KG update tracking
+    this.kgUpdateThreshold = {
+      pagesAdded: 5,      // Trigger on 5+ new pages
+      pagesUpdated: 20    // Trigger on 20+ updated pages
+    };
+    this.lastKgUpdate = Date.now();
+
     // Progress tracking - SINGLE CONSOLIDATED PROGRESS
     this.totalOperations = 0;
     this.completedOperations = 0;
@@ -77,6 +84,16 @@ class StreamlinedOSRSWatchdog {
     // Optional skips
     this.skipReprocess = process.env.OSRS_SKIP_REPROCESS === '1' || process.argv.includes('--skip-reprocess');
     this.skipChecker = process.env.OSRS_SKIP_CHECKER === '1' || process.argv.includes('--skip-checker');
+
+    // Orchestration mode flags
+    this.completionBased = process.argv.includes('--completion-based');
+    this.timedCycles = process.argv.includes('--timed-cycles');
+
+    // Progress tracking for embedding systems
+    this.embeddingProgress = {
+      kg: { active: false, progress: 0, status: 'idle' },
+      regular: { active: false, progress: 0, status: 'idle' }
+    };
   }
 
 
@@ -121,7 +138,12 @@ class StreamlinedOSRSWatchdog {
       // Always alphabetize/compact
       await this.alphabeticallyReorganizeContent();
 
-      await this.startMonitoring();
+      // Choose monitoring mode based on flags
+      if (this.completionBased) {
+        await this.startCompletionBasedMonitoring();
+      } else {
+        await this.startTimedMonitoring();
+      }
     } catch (error) {
       console.error(chalk.red(`❌ Fatal error: ${error.message}`));
       process.exit(1);
@@ -234,8 +256,8 @@ class StreamlinedOSRSWatchdog {
     await this.saveChanges();
   }
 
-  async startMonitoring() {
-    console.log(chalk.green('\n👁️  Starting continuous monitoring...'));
+  async startTimedMonitoring() {
+    console.log(chalk.green('\n👁️  Starting timed monitoring (10-minute cycles)...'));
     console.log(chalk.gray('Press Ctrl+C to stop'));
 
     this.isRunning = true;
@@ -262,6 +284,63 @@ class StreamlinedOSRSWatchdog {
       clearInterval(monitorInterval);
       process.exit(0);
     });
+  }
+
+  async startCompletionBasedMonitoring() {
+    console.log(chalk.green('\n👁️  Starting completion-based orchestration...'));
+    console.log(chalk.gray('Each cycle waits for embedding systems to complete'));
+    console.log(chalk.gray('Press Ctrl+C to stop'));
+
+    this.isRunning = true;
+
+    // Graceful shutdown handler
+    process.on('SIGINT', () => {
+      console.log(chalk.yellow('\n🛑 Shutting down gracefully...'));
+      this.isRunning = false;
+      process.exit(0);
+    });
+
+    while (this.isRunning) {
+      try {
+        console.log(chalk.blue(`\n🔄 Wiki monitoring cycle... ${new Date().toLocaleTimeString()}`));
+        console.log(chalk.blue('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
+
+        // Reset stats for this cycle
+        this.resetStats();
+
+        // Do complete update cycle (scan for new pages + check for updates)
+        await this.updateCollection();
+
+        // Check if changes warrant embedding updates
+        const hasChanges = this.stats.pagesAdded > 0 || this.stats.pagesUpdated > 0;
+
+        if (hasChanges) {
+          console.log(chalk.yellow(`\n🚀 Changes detected: ${this.stats.pagesAdded} added, ${this.stats.pagesUpdated} updated`));
+          console.log(chalk.yellow('🔄 Triggering both embedding systems...'));
+
+          // Trigger both embedding systems and wait for completion
+          const success = await this.triggerBothEmbeddingSystems();
+
+          if (success) {
+            console.log(chalk.green('\n✅ Embedding systems completed successfully'));
+            console.log(chalk.green('🔄 Resuming watchdog monitoring...'));
+          } else {
+            console.log(chalk.red('\n❌ Embedding systems encountered errors'));
+            console.log(chalk.yellow('⏳ Waiting 2 minutes before next cycle...'));
+            await this.sleep(2 * 60 * 1000);
+          }
+        } else {
+          console.log(chalk.green('✅ No changes detected, skipping embedding updates'));
+          console.log(chalk.gray('⏳ Waiting 30 seconds before next cycle...'));
+          await this.sleep(30 * 1000);
+        }
+
+      } catch (error) {
+        console.error(chalk.red(`❌ Monitoring cycle error: ${error.message}`));
+        console.log(chalk.yellow('⏳ Waiting 1 minute before retry...'));
+        await this.sleep(60 * 1000);
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -814,6 +893,9 @@ class StreamlinedOSRSWatchdog {
       fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata, null, 2));
 
       spinner.succeed(chalk.green('✅ All tracking data saved'));
+
+      // Check if KG update should be triggered
+      await this.checkKgUpdateTrigger();
 
     } catch (error) {
       spinner.fail(chalk.red('❌ Failed to save tracking data'));
@@ -1455,6 +1537,275 @@ print(processed)
     cleanText = cleanText.trim();
 
     return cleanText;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // EMBEDDING SYSTEMS ORCHESTRATION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  async triggerBothEmbeddingSystems() {
+    console.log(chalk.yellow('\n🚀 Starting both embedding systems in parallel...'));
+
+    // Reset progress tracking
+    this.embeddingProgress.kg = { active: true, progress: 0, status: 'starting' };
+    this.embeddingProgress.regular = { active: true, progress: 0, status: 'starting' };
+
+    try {
+      // Start both processes in parallel
+      const kgPromise = this.triggerKgUpdateWithProgress();
+      const embeddingsPromise = this.triggerRegularEmbeddingsWithProgress();
+
+      // Start progress monitoring
+      const progressMonitor = this.startProgressMonitoring();
+
+      // Wait for both to complete
+      const results = await Promise.allSettled([kgPromise, embeddingsPromise]);
+
+      // Stop progress monitoring
+      clearInterval(progressMonitor);
+
+      // Clear progress display
+      process.stdout.write('\n');
+
+      // Check results
+      const kgSuccess = results[0].status === 'fulfilled';
+      const embeddingsSuccess = results[1].status === 'fulfilled';
+
+      if (kgSuccess && embeddingsSuccess) {
+        console.log(chalk.green('✅ Both embedding systems completed successfully'));
+        return true;
+      } else {
+        if (!kgSuccess) {
+          console.error(chalk.red(`❌ KG embeddings failed: ${results[0].reason}`));
+        }
+        if (!embeddingsSuccess) {
+          console.error(chalk.red(`❌ Regular embeddings failed: ${results[1].reason}`));
+        }
+        return false;
+      }
+
+    } catch (error) {
+      console.error(chalk.red(`❌ Embedding systems orchestration failed: ${error.message}`));
+      return false;
+    } finally {
+      // Reset progress tracking
+      this.embeddingProgress.kg = { active: false, progress: 0, status: 'idle' };
+      this.embeddingProgress.regular = { active: false, progress: 0, status: 'idle' };
+    }
+  }
+
+  startProgressMonitoring() {
+    return setInterval(() => {
+      if (this.embeddingProgress.kg.active || this.embeddingProgress.regular.active) {
+        // Clear current line and show progress
+        process.stdout.write('\r\x1b[K');
+
+        const kgBar = this.createProgressBar(this.embeddingProgress.kg.progress, 'KG Embeddings');
+        const regularBar = this.createProgressBar(this.embeddingProgress.regular.progress, 'Wiki Embeddings');
+
+        process.stdout.write(`${kgBar} | ${regularBar}`);
+      }
+    }, 1000);
+  }
+
+  createProgressBar(progress, label) {
+    const width = 20;
+    const filled = Math.round(width * (progress / 100));
+    const empty = width - filled;
+    const bar = '█'.repeat(filled) + '░'.repeat(empty);
+    const percentage = progress.toFixed(1).padStart(5);
+    return `${label}: [${bar}] ${percentage}%`;
+  }
+
+  async triggerRegularEmbeddingsWithProgress() {
+    return new Promise((resolve, reject) => {
+      console.log(chalk.blue('   🔄 Starting regular wiki embeddings...'));
+
+      this.embeddingProgress.regular.status = 'running';
+
+      const embeddingsProcess = spawn('python3', [
+        path.join(__dirname, 'create_osrs_embeddings.py'),
+        '--incremental',
+        '--progress-mode'  // We'll add this flag to the Python script
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: path.join(__dirname, '..')
+      });
+
+      let outputBuffer = '';
+
+      embeddingsProcess.stdout.on('data', (data) => {
+        outputBuffer += data.toString();
+        this.parseEmbeddingProgress(outputBuffer, 'regular');
+      });
+
+      embeddingsProcess.stderr.on('data', (data) => {
+        const error = data.toString();
+        if (!error.includes('WARNING')) {
+          console.error(chalk.red(`Regular embeddings error: ${error}`));
+        }
+      });
+
+      embeddingsProcess.on('close', (code) => {
+        this.embeddingProgress.regular.active = false;
+        if (code === 0) {
+          this.embeddingProgress.regular.progress = 100;
+          this.embeddingProgress.regular.status = 'completed';
+          resolve();
+        } else {
+          this.embeddingProgress.regular.status = 'failed';
+          reject(new Error(`Regular embeddings failed with code ${code}`));
+        }
+      });
+
+      embeddingsProcess.on('error', (error) => {
+        this.embeddingProgress.regular.active = false;
+        this.embeddingProgress.regular.status = 'failed';
+        reject(error);
+      });
+    });
+  }
+
+  parseEmbeddingProgress(output, type) {
+    // Look for progress indicators in the output
+    const progressMatch = output.match(/Progress:\s*(\d+(?:\.\d+)?)%/);
+    if (progressMatch) {
+      const progress = parseFloat(progressMatch[1]);
+      this.embeddingProgress[type].progress = progress;
+    }
+
+    // Look for status updates
+    const statusMatch = output.match(/Status:\s*([^\n]+)/);
+    if (statusMatch) {
+      this.embeddingProgress[type].status = statusMatch[1].trim();
+    }
+  }
+
+  resetStats() {
+    this.stats = {
+      pagesAdded: 0,
+      pagesUpdated: 0,
+      pagesSkipped: 0,
+      errors: 0
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // KG AUTO-UPDATE INTEGRATION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  async checkKgUpdateTrigger() {
+    try {
+      const shouldTrigger = (
+        this.stats.pagesAdded >= this.kgUpdateThreshold.pagesAdded ||
+        this.stats.pagesUpdated >= this.kgUpdateThreshold.pagesUpdated
+      );
+
+      if (shouldTrigger) {
+        const timeSinceLastUpdate = Date.now() - this.lastKgUpdate;
+        const minInterval = 10 * 60 * 1000; // 10 minutes minimum between updates
+
+        if (timeSinceLastUpdate >= minInterval) {
+          console.log(chalk.yellow(`\n🔗 Triggering KG auto-update...`));
+          console.log(chalk.gray(`   📊 Changes: ${this.stats.pagesAdded} added, ${this.stats.pagesUpdated} updated`));
+
+          await this.triggerKgUpdate();
+          this.lastKgUpdate = Date.now();
+        } else {
+          const waitMinutes = Math.ceil((minInterval - timeSinceLastUpdate) / 60000);
+          console.log(chalk.gray(`\n⏳ KG update needed but waiting ${waitMinutes} more minutes (rate limiting)`));
+        }
+      }
+    } catch (error) {
+      console.error(chalk.red(`❌ KG update trigger check failed: ${error.message}`));
+    }
+  }
+
+  async triggerKgUpdate() {
+    try {
+      // Check if KG auto-updater service is running
+      const kgUpdaterPidFile = path.join(__dirname, '../logs/kg/kg_updater.pid');
+
+      if (fs.existsSync(kgUpdaterPidFile)) {
+        // Signal the KG auto-updater service
+        const pid = fs.readFileSync(kgUpdaterPidFile, 'utf8').trim();
+        try {
+          process.kill(parseInt(pid), 'SIGUSR1'); // Custom signal for KG update
+          console.log(chalk.green(`   ✅ Signaled KG auto-updater service (PID ${pid})`));
+          return;
+        } catch (e) {
+          console.log(chalk.yellow(`   ⚠️  KG auto-updater PID ${pid} not responding, running direct update`));
+        }
+      }
+
+      // Fallback: Run KG update directly
+      console.log(chalk.blue(`   🔄 Running direct KG update...`));
+
+      const { spawn } = require('child_process');
+      const kgProcess = spawn('python3', [
+        path.join(__dirname, 'kg_auto_updater.py'),
+        '--trigger-update'
+      ], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: path.join(__dirname, '..')
+      });
+
+      kgProcess.unref(); // Allow parent to exit
+      console.log(chalk.green(`   ✅ KG update process started (PID ${kgProcess.pid})`));
+
+    } catch (error) {
+      console.error(chalk.red(`   ❌ Failed to trigger KG update: ${error.message}`));
+    }
+  }
+
+  async triggerKgUpdateWithProgress() {
+    return new Promise((resolve, reject) => {
+      console.log(chalk.blue('   🔄 Starting KG auto-updater...'));
+
+      this.embeddingProgress.kg.status = 'running';
+
+      const kgProcess = spawn('python3', [
+        path.join(__dirname, 'kg_auto_updater.py'),
+        '--trigger-update',
+        '--progress-mode'  // We'll add this flag to the Python script
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: path.join(__dirname, '..')
+      });
+
+      let outputBuffer = '';
+
+      kgProcess.stdout.on('data', (data) => {
+        outputBuffer += data.toString();
+        this.parseEmbeddingProgress(outputBuffer, 'kg');
+      });
+
+      kgProcess.stderr.on('data', (data) => {
+        const error = data.toString();
+        if (!error.includes('WARNING')) {
+          console.error(chalk.red(`KG updater error: ${error}`));
+        }
+      });
+
+      kgProcess.on('close', (code) => {
+        this.embeddingProgress.kg.active = false;
+        if (code === 0) {
+          this.embeddingProgress.kg.progress = 100;
+          this.embeddingProgress.kg.status = 'completed';
+          resolve();
+        } else {
+          this.embeddingProgress.kg.status = 'failed';
+          reject(new Error(`KG updater failed with code ${code}`));
+        }
+      });
+
+      kgProcess.on('error', (error) => {
+        this.embeddingProgress.kg.active = false;
+        this.embeddingProgress.kg.status = 'failed';
+        reject(error);
+      });
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
