@@ -1855,12 +1855,36 @@ print(processed)
 
   async waitWithKeypress(ms) {
     return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
+      const startTime = Date.now();
+      const totalSeconds = Math.floor(ms / 1000);
+      let countdownInterval;
+
+      const cleanup = () => {
+        if (countdownInterval) clearInterval(countdownInterval);
         process.stdin.removeAllListeners('data');
         process.stdin.setRawMode(false);
         process.stdin.pause();
+      };
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        process.stdout.write('\n'); // Clear countdown line
         resolve();
       }, ms);
+
+      // Start countdown display
+      countdownInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, totalSeconds - elapsed);
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+
+        process.stdout.write(`\r${chalk.gray('⏳ Next cycle in:')} ${chalk.cyan(`${minutes}:${seconds.toString().padStart(2, '0')}`)} ${chalk.yellow('(Press any key to start now)')}`);
+
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
 
       // Set up keypress detection
       process.stdin.setRawMode(true);
@@ -1869,8 +1893,7 @@ print(processed)
 
       process.stdin.once('data', () => {
         clearTimeout(timeout);
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
+        cleanup();
         console.log(chalk.green('\n⚡ Manual cycle triggered!'));
         resolve();
       });
