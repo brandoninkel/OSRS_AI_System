@@ -292,6 +292,7 @@ class StreamlinedOSRSWatchdog {
     console.log(chalk.gray('Press Ctrl+C to stop'));
 
     this.isRunning = true;
+    let isFirstCycle = true;
 
     // Graceful shutdown handler
     process.on('SIGINT', () => {
@@ -305,14 +306,23 @@ class StreamlinedOSRSWatchdog {
         console.log(chalk.blue(`\n🔄 Wiki monitoring cycle... ${new Date().toLocaleTimeString()}`));
         console.log(chalk.blue('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
 
-        // Reset stats for this cycle
-        this.resetStats();
+        // Check if changes warrant embedding updates (before resetting stats)
+        let hasChanges = this.stats.pagesAdded > 0 || this.stats.pagesUpdated > 0;
 
-        // Do complete update cycle (scan for new pages + check for updates)
-        await this.updateCollection();
+        // If this is not the first cycle, do a new update cycle
+        if (!isFirstCycle) {
+          // Reset stats for this cycle
+          this.resetStats();
 
-        // Check if changes warrant embedding updates
-        const hasChanges = this.stats.pagesAdded > 0 || this.stats.pagesUpdated > 0;
+          // Do complete update cycle (scan for new pages + check for updates)
+          await this.updateCollection();
+
+          // Check if changes warrant embedding updates
+          hasChanges = this.stats.pagesAdded > 0 || this.stats.pagesUpdated > 0;
+        } else {
+          // First cycle: use stats from initial run
+          isFirstCycle = false;
+        }
 
         if (hasChanges) {
           console.log(chalk.yellow(`\n🚀 Changes detected: ${this.stats.pagesAdded} added, ${this.stats.pagesUpdated} updated`));
