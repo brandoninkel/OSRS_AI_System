@@ -480,8 +480,11 @@ class OSRSEmbeddingCreator:
                 # Extract texts for embedding
                 texts = [item['text'] for item in chunk]
 
-                # Create embeddings using async service
-                embeddings = self.embedding_service.embed_texts(texts)
+                # Create embeddings using async service if enabled
+                if use_async:
+                    embeddings = asyncio.run(self.embedding_service.embed_texts_async(texts))
+                else:
+                    embeddings = self.embedding_service.embed_texts(texts)
 
                 # Write results
                 for item, embedding in zip(chunk, embeddings):
