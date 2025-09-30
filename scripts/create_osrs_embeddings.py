@@ -491,9 +491,14 @@ class OSRSEmbeddingCreator:
                         processed += 1
 
                 f.flush()
-                logger.info(f"Processed {processed}/{total_entities} entities ({processed/total_entities*100:.1f}%)")
+                progress_percent = (processed / total_entities) * 100
+                logger.info(f"Processed {processed}/{total_entities} entities ({progress_percent:.1f}%)")
+
+                # Report progress for orchestration monitoring
+                self.report_progress(progress_percent, f"embedding KG entities ({processed}/{total_entities})")
 
         logger.info(f"✅ KG entity embeddings saved to: {output_file}")
+        self.report_progress(100, "completed")
 
     def test_embeddings(self) -> None:
         """Test the created embeddings"""

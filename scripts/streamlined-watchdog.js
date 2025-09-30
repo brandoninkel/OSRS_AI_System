@@ -668,7 +668,7 @@ class StreamlinedOSRSWatchdog {
         // Update progress every page
         this.updateProgress(`Processing ${namespaceName}`, processed, pages.length, ` | Success: ${successful}`);
 
-        await this.sleep(500); // Rate limiting
+        // No artificial rate limiting needed - serial requests are safe per MediaWiki API guidelines
 
       } catch (error) {
         this.stats.errors++;
@@ -690,6 +690,8 @@ class StreamlinedOSRSWatchdog {
     let processed = 0;
 
     for (const change of changes) {
+      const requestStart = Date.now();
+
       try {
         await this.updatePage(change.title);
         this.stats.pagesUpdated++;
@@ -711,7 +713,14 @@ class StreamlinedOSRSWatchdog {
           process.stdout.write(`\r   Updates |${chalk.cyan(bar)}| ${percentage}% | ${processed}/${changes.length} pages | ETA: ${eta}s | Rate: ${rate}/s`);
         }
 
-        await this.sleep(500);
+        // Smart rate limiting: only sleep if request was too fast
+        // Official MediaWiki guidance: serial requests are safe, no hard limit
+        // Target: ~1 request per second for politeness
+        const requestDuration = Date.now() - requestStart;
+        const minRequestTime = 1000; // 1 second between requests
+        if (requestDuration < minRequestTime) {
+          await this.sleep(minRequestTime - requestDuration);
+        }
 
       } catch (error) {
         this.stats.errors++;
