@@ -174,7 +174,8 @@ class KGAutoUpdater:
 
                 # Step 1: Rebuild KG triples from wiki content changes
                 logger.info("🔧 Building KG triples from updated wiki content...")
-                self.report_progress(10, "building KG triples")
+                self.report_progress(10, "building KG triples (this may take a while)")
+
                 result = subprocess.run([
                     "bash", str(self.scripts_dir / "knowledge-graph.command"),
                     "--workers", "8", "--snapshot"
@@ -190,7 +191,7 @@ class KGAutoUpdater:
                 # Step 2: Train PyKEEN model with new triples
                 kg_model_dir = self.data_dir / "kg_model"
                 logger.info("🧠 Training PyKEEN model with updated triples...")
-                self.report_progress(50, "training PyKEEN model")
+                self.report_progress(50, "training PyKEEN model (1 epoch, ~1-2 min)")
                 result = subprocess.run([
                     "bash", str(self.scripts_dir / "train-kg-embeddings.command"),
                     "--backend", "pykeen", "--no-eval", "--strict",
@@ -212,16 +213,22 @@ class KGAutoUpdater:
                 if (kg_model_dir / "entity_to_id.json").exists():
                     logger.info("🚀 Creating high-performance unified mxbai KG embeddings...")
                     logger.info("⚡ Using async mode with max concurrency for full system utilization")
-                    self.report_progress(80, "creating KG embeddings")
+                    self.report_progress(80, "creating KG embeddings (~149k entities)")
 
                     # Use the same high-performance approach as the main embeddings system
-                    result = subprocess.run([
+                    cmd = [
                         "python3", str(self.scripts_dir / "create_osrs_embeddings.py"),
                         "--kg-entities-only",  # Special mode for KG entities
                         "--async",
                         "--max-concurrency", "16",
                         "--chunk-size", "100"
-                    ], cwd=self.repo_root)
+                    ]
+
+                    # Add progress mode if enabled
+                    if self.progress_mode:
+                        cmd.append("--progress-mode")
+
+                    result = subprocess.run(cmd, cwd=self.repo_root)
 
                     if result.returncode == 0:
                         logger.info("✅ High-performance unified KG embeddings created")
