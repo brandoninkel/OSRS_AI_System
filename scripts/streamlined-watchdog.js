@@ -138,6 +138,9 @@ class StreamlinedOSRSWatchdog {
       // Always alphabetize/compact
       await this.alphabeticallyReorganizeContent();
 
+      // Check if KG system needs initial sync
+      await this.checkKGSyncStatus();
+
       // Choose monitoring mode based on flags
       if (this.completionBased) {
         await this.startCompletionBasedMonitoring();
@@ -254,6 +257,56 @@ class StreamlinedOSRSWatchdog {
 
     console.log(chalk.green(`\n✅ Full refetch complete: ${saved.toLocaleString()} pages refreshed`));
     await this.saveChanges();
+  }
+
+  async checkKGSyncStatus() {
+    try {
+      console.log(chalk.blue('\n🔍 Checking KG system sync status...'));
+
+      const kgStatusFile = path.join(__dirname, '../data/kg_updater_status.json');
+      const kgMetaFile = path.join(__dirname, '../data/osrs_kg.meta.json');
+      const watchdogMetaFile = path.join(__dirname, '../data/watchdog_metadata.json');
+
+      // Check if KG files exist
+      if (!fs.existsSync(kgStatusFile) || !fs.existsSync(kgMetaFile)) {
+        console.log(chalk.yellow('   ⚠️  KG system not initialized, will trigger on first wiki change'));
+        return false;
+      }
+
+      // Load metadata
+      const kgStatus = JSON.parse(fs.readFileSync(kgStatusFile, 'utf8'));
+      const kgMeta = JSON.parse(fs.readFileSync(kgMetaFile, 'utf8'));
+      const watchdogMeta = JSON.parse(fs.readFileSync(watchdogMetaFile, 'utf8'));
+
+      // Compare timestamps
+      const kgTimestamp = kgMeta.generated_at * 1000; // Convert to ms
+      const watchdogTimestamp = watchdogMeta.lastUpdate;
+
+      const timeDiff = watchdogTimestamp - kgTimestamp;
+      const hoursDiff = Math.round(timeDiff / (1000 * 60 * 60));
+
+      console.log(chalk.gray(`   📊 Wiki last updated: ${new Date(watchdogTimestamp).toLocaleString()}`));
+      console.log(chalk.gray(`   📊 KG last updated: ${new Date(kgTimestamp).toLocaleString()}`));
+      console.log(chalk.gray(`   ⏱️  Time difference: ${hoursDiff} hours`));
+
+      // If KG is more than 1 hour behind, force an update
+      if (timeDiff > 60 * 60 * 1000) {
+        console.log(chalk.yellow(`   ⚠️  KG system is ${hoursDiff} hours behind wiki content`));
+        console.log(chalk.yellow('   🔄 Forcing KG and embedding updates to sync...'));
+
+        // Set stats to trigger embedding updates
+        this.stats.pagesUpdated = 1; // Fake a change to trigger updates
+
+        return true; // Indicates KG needs sync
+      } else {
+        console.log(chalk.green('   ✅ KG system is in sync with wiki content'));
+        return false;
+      }
+
+    } catch (error) {
+      console.log(chalk.gray(`   ℹ️  Could not check KG sync status: ${error.message}`));
+      return false;
+    }
   }
 
   async startTimedMonitoring() {
