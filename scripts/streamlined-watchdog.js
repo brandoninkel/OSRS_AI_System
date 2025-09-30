@@ -1697,9 +1697,10 @@ print(processed)
       this.embeddingProgress.regular.status = 'running';
 
       const embeddingsProcess = spawn('python3', [
+        '-u',  // Unbuffered output for real-time progress
         path.join(__dirname, 'create_osrs_embeddings.py'),
         '--incremental',
-        '--progress-mode'  // We'll add this flag to the Python script
+        '--progress-mode'
       ], {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: path.join(__dirname, '..')
@@ -1844,9 +1845,10 @@ print(processed)
       this.embeddingProgress.kg.status = 'running';
 
       const kgProcess = spawn('python3', [
+        '-u',  // Unbuffered output for real-time progress
         path.join(__dirname, 'kg_auto_updater.py'),
         '--trigger-update',
-        '--progress-mode'  // We'll add this flag to the Python script
+        '--progress-mode'
       ], {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: path.join(__dirname, '..')

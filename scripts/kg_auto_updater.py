@@ -217,7 +217,8 @@ class KGAutoUpdater:
 
                     # Use the same high-performance approach as the main embeddings system
                     cmd = [
-                        "python3", str(self.scripts_dir / "create_osrs_embeddings.py"),
+                        "python3", "-u",  # Unbuffered output for real-time progress
+                        str(self.scripts_dir / "create_osrs_embeddings.py"),
                         "--kg-entities-only",  # Special mode for KG entities
                         "--async",
                         "--max-concurrency", "16",
