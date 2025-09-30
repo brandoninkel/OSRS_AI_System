@@ -227,8 +227,18 @@ class KGAutoUpdater:
                     # Add progress mode if enabled
                     if self.progress_mode:
                         cmd.append("--progress-mode")
-
-                    result = subprocess.run(cmd, cwd=self.repo_root)
+                        # Stream output to parent process for progress monitoring
+                        process = subprocess.Popen(cmd, cwd=self.repo_root,
+                                                  stdout=subprocess.PIPE,
+                                                  stderr=subprocess.STDOUT,
+                                                  text=True, bufsize=1)
+                        # Forward output line by line
+                        for line in process.stdout:
+                            print(line, end='', flush=True)
+                        result_code = process.wait()
+                        result = type('obj', (object,), {'returncode': result_code})()
+                    else:
+                        result = subprocess.run(cmd, cwd=self.repo_root)
 
                     if result.returncode == 0:
                         logger.info("✅ High-performance unified KG embeddings created")
