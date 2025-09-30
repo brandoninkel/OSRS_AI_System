@@ -1651,9 +1651,14 @@ print(processed)
       });
 
       embeddingsProcess.stderr.on('data', (data) => {
-        const error = data.toString();
-        if (!error.includes('WARNING')) {
-          console.error(chalk.red(`Regular embeddings error: ${error}`));
+        const output = data.toString();
+        // Python logging sends INFO to stderr, so parse it for progress
+        outputBuffer += output;
+        this.parseEmbeddingProgress(outputBuffer, 'regular');
+
+        // Only show actual errors (not INFO or WARNING)
+        if (!output.includes('INFO') && !output.includes('WARNING')) {
+          console.error(chalk.red(`Regular embeddings error: ${output}`));
         }
       });
 
@@ -1793,9 +1798,14 @@ print(processed)
       });
 
       kgProcess.stderr.on('data', (data) => {
-        const error = data.toString();
-        if (!error.includes('WARNING')) {
-          console.error(chalk.red(`KG updater error: ${error}`));
+        const output = data.toString();
+        // Python logging sends INFO to stderr, so parse it for progress
+        outputBuffer += output;
+        this.parseEmbeddingProgress(outputBuffer, 'kg');
+
+        // Only show actual errors (not INFO or WARNING)
+        if (!output.includes('INFO') && !output.includes('WARNING')) {
+          console.error(chalk.red(`KG updater error: ${output}`));
         }
       });
 
