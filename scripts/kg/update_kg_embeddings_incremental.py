@@ -122,18 +122,50 @@ class IncrementalKGEmbeddingUpdater:
         # For now, return empty list - we'll add this in a follow-up
         return []
     
-    async def embed_entities(self, entities: List[str]) -> Dict[str, List[float]]:
-        """Embed a list of entities using batch API"""
+    async def embed_entities(self, entities: List[str], progress_callback=None) -> Dict[str, List[float]]:
+        """Embed a list of entities using batch API with progress reporting"""
         logger.info(f"🔥 Embedding {len(entities)} entities using batch API...")
-        
-        # Use batch API for maximum speed
-        embeddings = await self.embedding_service.embed_texts_async(entities, use_batch_api=True)
-        
+
         result = {}
-        for entity, embedding in zip(entities, embeddings):
-            if embedding:
-                result[entity] = embedding
-        
+        total = len(entities)
+
+        # Process in smaller chunks to avoid Ollama timeouts
+        # Ollama's batch API can handle ~100-200 texts efficiently
+        chunk_size = 100  # Smaller chunks for reliability
+
+        for i in range(0, total, chunk_size):
+            chunk = entities[i:i + chunk_size]
+            chunk_end = min(i + chunk_size, total)
+
+            try:
+                # Embed this chunk with timeout protection
+                embeddings = await asyncio.wait_for(
+                    self.embedding_service.embed_texts_async(chunk, use_batch_api=True),
+                    timeout=120.0  # 2 minute timeout per chunk
+                )
+
+                # Store results
+                for entity, embedding in zip(chunk, embeddings):
+                    if embedding:
+                        result[entity] = embedding
+
+            except asyncio.TimeoutError:
+                logger.error(f"⏱️  Timeout embedding chunk {i}-{chunk_end}, skipping...")
+                continue
+            except Exception as e:
+                logger.error(f"❌ Error embedding chunk {i}-{chunk_end}: {e}")
+                continue
+
+            # Report progress
+            progress_pct = (chunk_end / total) * 100
+            if progress_callback:
+                progress_callback(chunk_end, total, progress_pct)
+
+            # Force flush to ensure progress is visible
+            print(f"Progress: {progress_pct:.1f}%", flush=True)
+            print(f"Status: embedding KG entities ({chunk_end}/{total})", flush=True)
+            sys.stdout.flush()
+
         return result
     
     def update_embeddings(self, changed_pages: List[str] = None, deleted_pages: List[str] = None, full_rebuild: bool = False):
@@ -168,9 +200,13 @@ class IncrementalKGEmbeddingUpdater:
         # Embed entities
         logger.info(f"🚀 Embedding {len(entities_to_update)} entities...")
         start_time = datetime.now()
-        
-        new_embeddings = asyncio.run(self.embed_entities(entities_to_update))
-        
+
+        # Progress callback
+        def report_progress(current, total, pct):
+            print(f"Progress: {pct:.1f}%", flush=True)
+
+        new_embeddings = asyncio.run(self.embed_entities(entities_to_update, progress_callback=report_progress))
+
         elapsed = (datetime.now() - start_time).total_seconds()
         rate = len(new_embeddings) / elapsed if elapsed > 0 else 0
         logger.info(f"✅ Embedded {len(new_embeddings)} entities in {elapsed:.1f}s ({rate:.1f} entities/sec)")
