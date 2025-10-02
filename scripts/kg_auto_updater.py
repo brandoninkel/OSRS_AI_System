@@ -313,8 +313,17 @@ class KGAutoUpdater:
                 elif self.progress_mode:
                     import threading
                     import time
+                    import json
 
-                    total_entities = 149045  # Known total from entity_to_id.json
+                    # Read actual entity count from entity_to_id.json
+                    entity_to_id_file = self.repo_root / "data" / "kg_model" / "entity_to_id.json"
+                    try:
+                        with open(entity_to_id_file, 'r') as f:
+                            entity_to_id = json.load(f)
+                            total_entities = len(entity_to_id)
+                    except Exception:
+                        total_entities = 149045  # Fallback to known value
+
                     stop_monitoring = threading.Event()
 
                     def monitor_progress():
@@ -326,7 +335,9 @@ class KGAutoUpdater:
                                     with open(output_file, 'r') as f:
                                         current_count = sum(1 for _ in f)
                                     if current_count != last_count:
-                                        progress = 80 + (current_count / total_entities) * 15  # 80-95%
+                                        # Cap progress at 95% to avoid showing >100%
+                                        progress_pct = min((current_count / total_entities) * 100, 100.0)
+                                        progress = 80 + (progress_pct / 100) * 15  # 80-95%
                                         self.report_progress(progress, f"embedding KG entities ({current_count}/{total_entities})")
                                         last_count = current_count
                             except Exception as e:
