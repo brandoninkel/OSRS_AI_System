@@ -167,21 +167,72 @@ class IncrementalKGEmbeddingUpdater:
             sys.stdout.flush()
 
         return result
+
+    async def embed_entities_streaming(self, entities: List[str], chunk_callback=None):
+        """Embed entities and call callback after each chunk for streaming writes"""
+        logger.info(f"🔥 Embedding {len(entities)} entities with streaming...")
+
+        total = len(entities)
+        chunk_size = 100  # Process 100 at a time
+
+        for i in range(0, total, chunk_size):
+            chunk = entities[i:i + chunk_size]
+            chunk_end = min(i + chunk_size, total)
+
+            try:
+                # Embed this chunk
+                embeddings = await asyncio.wait_for(
+                    self.embedding_service.embed_texts_async(chunk, use_batch_api=True),
+                    timeout=120.0
+                )
+
+                # Call callback with chunk results
+                if chunk_callback:
+                    chunk_callback(chunk, embeddings)
+
+            except asyncio.TimeoutError:
+                logger.error(f"⏱️  Timeout embedding chunk {i}-{chunk_end}, skipping...")
+                continue
+            except Exception as e:
+                logger.error(f"❌ Error embedding chunk {i}-{chunk_end}: {e}")
+                continue
+
+            # Report progress
+            progress_pct = (chunk_end / total) * 100
+            print(f"Progress: {progress_pct:.1f}%", flush=True)
+            print(f"Status: embedding KG entities ({chunk_end}/{total})", flush=True)
+            sys.stdout.flush()
     
     def update_embeddings(self, changed_pages: List[str] = None, deleted_pages: List[str] = None, full_rebuild: bool = False):
         """Update embeddings incrementally or do full rebuild"""
 
         if full_rebuild:
-            logger.info("🔄 Full rebuild requested - checking for missing embeddings")
+            logger.info("🔄 Full rebuild requested - checking what needs updating")
             all_entities = set(self.entity_to_id.keys())
-            already_embedded = set(self.existing_embeddings.keys())
-            entities_to_update = list(all_entities - already_embedded)
+
+            # Check which entities need metadata added
+            entities_without_metadata = []
+            entities_without_embeddings = []
+
+            for entity in all_entities:
+                if entity in self.existing_embeddings:
+                    # Check if it has metadata
+                    if 'metadata' not in self.existing_embeddings[entity] or \
+                       'source_pages' not in self.existing_embeddings[entity].get('metadata', {}):
+                        entities_without_metadata.append(entity)
+                else:
+                    entities_without_embeddings.append(entity)
+
+            # Combine both lists - need to re-embed entities without metadata
+            entities_to_update = entities_without_metadata + entities_without_embeddings
 
             if entities_to_update:
-                logger.info(f"📊 Found {len(already_embedded):,} existing embeddings")
-                logger.info(f"🚀 Need to embed {len(entities_to_update):,} remaining entities")
+                logger.info(f"📊 Found {len(self.existing_embeddings):,} existing embeddings")
+                logger.info(f"🔄 Need to re-embed {len(entities_without_metadata):,} entities (missing metadata)")
+                logger.info(f"🆕 Need to embed {len(entities_without_embeddings):,} new entities")
+                logger.info(f"🚀 Total to process: {len(entities_to_update):,} entities")
             else:
-                logger.info(f"✅ All {len(all_entities):,} entities already embedded!")
+                logger.info(f"✅ All {len(all_entities):,} entities already embedded with metadata!")
                 return
         elif changed_pages or deleted_pages:
             affected_entities = set()
@@ -206,55 +257,55 @@ class IncrementalKGEmbeddingUpdater:
             logger.info("✅ No entities to update")
             return
         
-        # Embed entities
-        logger.info(f"🚀 Embedding {len(entities_to_update)} entities...")
+        # Embed entities with streaming writes
+        logger.info(f"🚀 Embedding {len(entities_to_update)} entities with streaming writes...")
         start_time = datetime.now()
 
-        # Progress callback
-        def report_progress(current, total, pct):
-            print(f"Progress: {pct:.1f}%", flush=True)
-
-        new_embeddings = asyncio.run(self.embed_entities(entities_to_update, progress_callback=report_progress))
-
-        elapsed = (datetime.now() - start_time).total_seconds()
-        rate = len(new_embeddings) / elapsed if elapsed > 0 else 0
-        logger.info(f"✅ Embedded {len(new_embeddings)} entities in {elapsed:.1f}s ({rate:.1f} entities/sec)")
-        
-        # Update existing embeddings
         updated_count = 0
         new_count = 0
-        
-        for entity, embedding in new_embeddings.items():
-            entity_data = {
-                'title': entity,
-                'text': entity,
-                'source': 'knowledge_graph',
-                'kg_entity': True,
-                'entity_id': self.entity_to_id.get(entity, -1),
-                'url': f"https://oldschool.runescape.wiki/w/{entity.replace(' ', '_')}",
-                'embedding': embedding,
-                'metadata': {
-                    'source_pages': self.entity_to_pages.get(entity, []),
-                    'updated_at': datetime.now().isoformat(),
-                    'embedding_model': 'mxbai-embed-large:latest'
-                }
-            }
-            
-            if entity in self.existing_embeddings:
-                updated_count += 1
-            else:
-                new_count += 1
-            
-            self.existing_embeddings[entity] = entity_data
-        
+
+        # Create a callback that writes embeddings as they're generated
+        def process_chunk_callback(chunk_entities, chunk_embeddings):
+            nonlocal updated_count, new_count
+
+            for entity, embedding in zip(chunk_entities, chunk_embeddings):
+                if embedding:
+                    entity_data = {
+                        'title': entity,
+                        'text': entity,
+                        'source': 'knowledge_graph',
+                        'kg_entity': True,
+                        'entity_id': self.entity_to_id.get(entity, -1),
+                        'url': f"https://oldschool.runescape.wiki/w/{entity.replace(' ', '_')}",
+                        'embedding': embedding,
+                        'metadata': {
+                            'source_pages': self.entity_to_pages.get(entity, []),
+                            'updated_at': datetime.now().isoformat(),
+                            'embedding_model': 'mxbai-embed-large:latest'
+                        }
+                    }
+
+                    if entity in self.existing_embeddings:
+                        updated_count += 1
+                    else:
+                        new_count += 1
+
+                    self.existing_embeddings[entity] = entity_data
+
+        # Embed with streaming callback
+        asyncio.run(self.embed_entities_streaming(entities_to_update, process_chunk_callback))
+
+        elapsed = (datetime.now() - start_time).total_seconds()
+        rate = len(entities_to_update) / elapsed if elapsed > 0 else 0
+        logger.info(f"✅ Embedded {len(entities_to_update)} entities in {elapsed:.1f}s ({rate:.1f} entities/sec)")
         logger.info(f"📊 Updated {updated_count} existing embeddings, added {new_count} new embeddings")
-        
-        # Save updated embeddings
-        logger.info(f"💾 Saving embeddings to {EMBEDDINGS_FILE}")
+
+        # Save all embeddings (including unchanged ones)
+        logger.info(f"💾 Saving all embeddings to {EMBEDDINGS_FILE}")
         with open(EMBEDDINGS_FILE, 'w', encoding='utf-8') as f:
             for entity_data in self.existing_embeddings.values():
                 f.write(json.dumps(entity_data) + '\n')
-        
+
         logger.info(f"✅ Incremental update complete!")
         logger.info(f"📈 Total embeddings: {len(self.existing_embeddings):,}")
 
