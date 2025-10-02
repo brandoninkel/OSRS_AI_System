@@ -188,80 +188,80 @@ class KGAutoUpdater:
             logger.info("✅ KG triples built successfully")
             self.report_progress(40, "KG triples completed")
 
-                # Step 2: Train PyKEEN model with new triples
-                kg_model_dir = self.data_dir / "kg_model"
-                logger.info("🧠 Training PyKEEN model with updated triples...")
-                self.report_progress(50, "training PyKEEN model (1 epoch, ~1-2 min)")
-                result = subprocess.run([
-                    "bash", str(self.scripts_dir / "train-kg-embeddings.command"),
-                    "--backend", "pykeen", "--no-eval", "--strict",
-                    "--triples", str(self.kg_triples_file),
-                    "--out", str(kg_model_dir),
-                    "--model", "TransE", "--dimension", "100",
-                    "--epochs", "1", "--num-workers", "0", "--batch-size", "512"
-                ], cwd=self.repo_root)
+            # Step 2: Train PyKEEN model with new triples
+            kg_model_dir = self.data_dir / "kg_model"
+            logger.info("🧠 Training PyKEEN model with updated triples...")
+            self.report_progress(50, "training PyKEEN model (1 epoch, ~1-2 min)")
+            result = subprocess.run([
+                "bash", str(self.scripts_dir / "train-kg-embeddings.command"),
+                "--backend", "pykeen", "--no-eval", "--strict",
+                "--triples", str(self.kg_triples_file),
+                "--out", str(kg_model_dir),
+                "--model", "TransE", "--dimension", "100",
+                "--epochs", "1", "--num-workers", "0", "--batch-size", "512"
+            ], cwd=self.repo_root)
 
-                if result.returncode != 0:
-                    logger.warning(f"PyKEEN training failed with return code: {result.returncode}")
-                    logger.info("✅ Using existing KG model")
+            if result.returncode != 0:
+                logger.warning(f"PyKEEN training failed with return code: {result.returncode}")
+                logger.info("✅ Using existing KG model")
+            else:
+                logger.info("✅ PyKEEN model trained successfully")
+
+            self.report_progress(70, "PyKEEN training completed")
+
+            # Step 3: Create high-performance unified mxbai embeddings
+            if (kg_model_dir / "entity_to_id.json").exists():
+                logger.info("🚀 Creating high-performance unified mxbai KG embeddings...")
+                logger.info("⚡ Using async mode with max concurrency for full system utilization")
+                self.report_progress(80, "creating KG embeddings (~149k entities)")
+
+                # Use the same high-performance approach as the main embeddings system
+                cmd = [
+                    "python3", "-u",  # Unbuffered output for real-time progress
+                    str(self.scripts_dir / "create_osrs_embeddings.py"),
+                    "--kg-entities-only",  # Special mode for KG entities
+                    "--async",
+                    "--max-concurrency", "16",
+                    "--chunk-size", "100"
+                ]
+
+                # Add progress mode if enabled
+                if self.progress_mode:
+                    cmd.append("--progress-mode")
+                    # Stream output to parent process for progress monitoring
+                    process = subprocess.Popen(cmd, cwd=self.repo_root,
+                                              stdout=subprocess.PIPE,
+                                              stderr=subprocess.STDOUT,
+                                              text=True, bufsize=1)
+                    # Forward output line by line
+                    for line in process.stdout:
+                        print(line, end='', flush=True)
+                    result_code = process.wait()
+                    result = type('obj', (object,), {'returncode': result_code})()
                 else:
-                    logger.info("✅ PyKEEN model trained successfully")
+                    result = subprocess.run(cmd, cwd=self.repo_root)
 
-                self.report_progress(70, "PyKEEN training completed")
-                
-                # Step 3: Create high-performance unified mxbai embeddings
-                if (kg_model_dir / "entity_to_id.json").exists():
-                    logger.info("🚀 Creating high-performance unified mxbai KG embeddings...")
-                    logger.info("⚡ Using async mode with max concurrency for full system utilization")
-                    self.report_progress(80, "creating KG embeddings (~149k entities)")
+                if result.returncode == 0:
+                    logger.info("✅ High-performance unified KG embeddings created")
 
-                    # Use the same high-performance approach as the main embeddings system
-                    cmd = [
-                        "python3", "-u",  # Unbuffered output for real-time progress
-                        str(self.scripts_dir / "create_osrs_embeddings.py"),
-                        "--kg-entities-only",  # Special mode for KG entities
-                        "--async",
-                        "--max-concurrency", "16",
-                        "--chunk-size", "100"
-                    ]
-
-                    # Add progress mode if enabled
-                    if self.progress_mode:
-                        cmd.append("--progress-mode")
-                        # Stream output to parent process for progress monitoring
-                        process = subprocess.Popen(cmd, cwd=self.repo_root,
-                                                  stdout=subprocess.PIPE,
-                                                  stderr=subprocess.STDOUT,
-                                                  text=True, bufsize=1)
-                        # Forward output line by line
-                        for line in process.stdout:
-                            print(line, end='', flush=True)
-                        result_code = process.wait()
-                        result = type('obj', (object,), {'returncode': result_code})()
-                    else:
-                        result = subprocess.run(cmd, cwd=self.repo_root)
+                    # Signal RAG service to reload embeddings
+                    self._signal_rag_reload()
+                    self.report_progress(95, "signaling RAG reload")
+                else:
+                    logger.warning(f"KG embeddings creation failed with return code: {result.returncode}")
+                    # Fallback to ultra-high-performance method
+                    logger.info("🔄 Using ultra-high-performance direct embedding creation...")
+                    result = subprocess.run([
+                        "python3", str(self.scripts_dir / "kg" / "create_mxbai_kg_embeddings.py"),
+                        "--workers", "128"
+                    ], cwd=self.repo_root)
 
                     if result.returncode == 0:
-                        logger.info("✅ High-performance unified KG embeddings created")
-
-                        # Signal RAG service to reload embeddings
+                        logger.info("✅ Unified KG embeddings updated (fallback method)")
                         self._signal_rag_reload()
                         self.report_progress(95, "signaling RAG reload")
                     else:
-                        logger.warning(f"KG embeddings creation failed with return code: {result.returncode}")
-                        # Fallback to ultra-high-performance method
-                        logger.info("🔄 Using ultra-high-performance direct embedding creation...")
-                        result = subprocess.run([
-                            "python3", str(self.scripts_dir / "kg" / "create_mxbai_kg_embeddings.py"),
-                            "--workers", "128"
-                        ], cwd=self.repo_root)
-
-                        if result.returncode == 0:
-                            logger.info("✅ Unified KG embeddings updated (fallback method)")
-                            self._signal_rag_reload()
-                            self.report_progress(95, "signaling RAG reload")
-                        else:
-                            logger.error(f"Both embedding methods failed")
+                        logger.error(f"Both embedding methods failed")
 
             logger.info("🎉 KG auto-update complete!")
             self.report_progress(100, "completed")
