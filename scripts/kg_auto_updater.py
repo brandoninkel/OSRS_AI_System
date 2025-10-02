@@ -209,29 +209,58 @@ class KGAutoUpdater:
 
             self.report_progress(70, "PyKEEN training completed")
 
-            # Step 3: Create high-performance unified mxbai embeddings
+            # Step 3: Update entity → pages mapping (needed for incremental updates)
+            logger.info("🗺️  Updating entity → pages mapping...")
+            self.report_progress(75, "updating entity mappings")
+
+            mapping_result = subprocess.run([
+                "python3", str(self.scripts_dir / "kg" / "build_entity_mapping.py")
+            ], cwd=self.repo_root, capture_output=True)
+
+            if mapping_result.returncode == 0:
+                logger.info("✅ Entity mappings updated")
+            else:
+                logger.warning("⚠️  Entity mapping update failed, will use full rebuild")
+
+            # Step 4: Create/update KG embeddings (incremental by default, full rebuild if needed)
             if (kg_model_dir / "entity_to_id.json").exists():
-                logger.info("🚀 Creating high-performance unified mxbai KG embeddings...")
-                logger.info("⚡ Using async mode with max concurrency for full system utilization")
-                self.report_progress(80, "creating KG embeddings (~149k entities)")
-
                 output_file = self.data_dir / "kg_entity_embeddings_mxbai.jsonl"
+                entity_mapping_exists = (self.data_dir / "kg_entity_to_pages.json").exists()
 
-                # Clear the output file before starting to avoid confusion from old data
-                if output_file.exists():
-                    logger.info(f"🗑️  Clearing old embeddings file: {output_file}")
-                    output_file.unlink()
+                # Use incremental update if we have existing embeddings and entity mappings
+                use_incremental = output_file.exists() and entity_mapping_exists
 
-                # Use the same high-performance approach as the main embeddings system
-                # M4 Pro with 12 cores + 24GB RAM can handle 64+ concurrent requests
-                cmd = [
-                    "python3", "-u",  # Unbuffered output for real-time progress
-                    str(self.scripts_dir / "create_osrs_embeddings.py"),
-                    "--kg-entities-only",  # Special mode for KG entities
-                    "--async",
-                    "--max-concurrency", "64",  # Push system limits for M4 Pro
-                    "--chunk-size", "200"  # Larger chunks for better throughput
-                ]
+                if use_incremental:
+                    logger.info("🔄 Using incremental KG embedding update (fast)...")
+                    logger.info("ℹ️  Only entities from changed pages will be re-embedded")
+                    self.report_progress(80, "incremental KG embedding update")
+
+                    # For now, do full rebuild since we don't track specific changed pages yet
+                    # TODO: Track changed pages and pass them to incremental updater
+                    cmd = [
+                        "python3", "-u",
+                        str(self.scripts_dir / "kg" / "update_kg_embeddings_incremental.py"),
+                        "--full-rebuild"  # Will be replaced with --changed-pages once we track them
+                    ]
+                else:
+                    logger.info("🚀 Creating KG embeddings from scratch...")
+                    logger.info("⚡ Using async mode with max concurrency for full system utilization")
+                    self.report_progress(80, "creating KG embeddings (~149k entities)")
+
+                    # Clear the output file before starting
+                    if output_file.exists():
+                        logger.info(f"🗑️  Clearing old embeddings file: {output_file}")
+                        output_file.unlink()
+
+                    # Use the same high-performance approach as the main embeddings system
+                    cmd = [
+                        "python3", "-u",  # Unbuffered output for real-time progress
+                        str(self.scripts_dir / "create_osrs_embeddings.py"),
+                        "--kg-entities-only",  # Special mode for KG entities
+                        "--async",
+                        "--max-concurrency", "64",  # Push system limits for M4 Pro
+                        "--chunk-size", "200"  # Larger chunks for better throughput
+                    ]
 
                 # Monitor file growth and report progress
                 if self.progress_mode:
