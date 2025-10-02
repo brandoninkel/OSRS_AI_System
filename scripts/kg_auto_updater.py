@@ -226,21 +226,70 @@ class KGAutoUpdater:
             if (kg_model_dir / "entity_to_id.json").exists():
                 output_file = self.data_dir / "kg_entity_embeddings_mxbai.jsonl"
                 entity_mapping_exists = (self.data_dir / "kg_entity_to_pages.json").exists()
+                changed_pages_file = self.data_dir / "watchdog_changed_pages.json"
 
-                # Use incremental update if we have existing embeddings and entity mappings
-                use_incremental = output_file.exists() and entity_mapping_exists
+                # Check if embeddings have metadata (needed for incremental updates)
+                has_metadata = False
+                if output_file.exists():
+                    try:
+                        with open(output_file, 'r') as f:
+                            first_line = f.readline()
+                            if first_line:
+                                data = json.loads(first_line)
+                                has_metadata = 'metadata' in data and 'source_pages' in data.get('metadata', {})
+                    except Exception:
+                        pass
+
+                # Use incremental update if we have:
+                # 1. Existing embeddings with metadata
+                # 2. Entity mappings
+                # 3. Changed pages list from watchdog
+                use_incremental = (
+                    output_file.exists() and
+                    has_metadata and
+                    entity_mapping_exists and
+                    changed_pages_file.exists()
+                )
 
                 if use_incremental:
-                    logger.info("🔄 Using incremental KG embedding update (fast)...")
-                    logger.info("ℹ️  Only entities from changed pages will be re-embedded")
-                    self.report_progress(80, "incremental KG embedding update")
+                    # Load changed pages from watchdog
+                    with open(changed_pages_file, 'r') as f:
+                        changed_data = json.load(f)
 
-                    # For now, do full rebuild since we don't track specific changed pages yet
-                    # TODO: Track changed pages and pass them to incremental updater
+                    changed_pages = changed_data.get('added', []) + changed_data.get('updated', [])
+
+                    if changed_pages:
+                        logger.info(f"🔄 Using incremental KG embedding update (fast)...")
+                        logger.info(f"ℹ️  Processing {len(changed_pages)} changed pages")
+                        self.report_progress(80, f"incremental update ({len(changed_pages)} pages)")
+
+                        cmd = [
+                            "python3", "-u",
+                            str(self.scripts_dir / "kg" / "update_kg_embeddings_incremental.py"),
+                            "--changed-pages", ",".join(changed_pages)
+                        ]
+                    else:
+                        logger.info("ℹ️  No changed pages, skipping KG embedding update")
+                        self.report_progress(95, "no changes, skipping")
+                        cmd = None
+                else:
+                    # Full rebuild needed if:
+                    # - No existing embeddings
+                    # - No metadata in embeddings (first time with new system)
+                    # - No entity mappings
+                    # - No changed pages file
+                    if not has_metadata and output_file.exists():
+                        logger.info("🔄 Existing embeddings lack metadata, doing full rebuild to add tracking...")
+                    else:
+                        logger.info("🚀 Creating KG embeddings from scratch...")
+
+                    logger.info("⚡ Using async mode with max concurrency for full system utilization")
+                    self.report_progress(80, "full KG embedding rebuild (~149k entities)")
+
                     cmd = [
                         "python3", "-u",
                         str(self.scripts_dir / "kg" / "update_kg_embeddings_incremental.py"),
-                        "--full-rebuild"  # Will be replaced with --changed-pages once we track them
+                        "--full-rebuild"
                     ]
                 else:
                     logger.info("🚀 Creating KG embeddings from scratch...")
@@ -262,8 +311,11 @@ class KGAutoUpdater:
                         "--chunk-size", "200"  # Larger chunks for better throughput
                     ]
 
-                # Monitor file growth and report progress
-                if self.progress_mode:
+                # Skip if no command (no changes detected)
+                if cmd is None:
+                    logger.info("✅ KG embeddings up to date")
+                    self.report_progress(95, "KG embeddings up to date")
+                elif self.progress_mode:
                     import threading
                     import time
 

@@ -57,6 +57,12 @@ class StreamlinedOSRSWatchdog {
       errors: 0
     };
 
+    // Track changed pages for incremental KG updates
+    this.changedPages = {
+      added: new Set(),
+      updated: new Set()
+    };
+
     // KG update tracking
     this.kgUpdateThreshold = {
       pagesAdded: 5,      // Trigger on 5+ new pages
@@ -381,12 +387,19 @@ class StreamlinedOSRSWatchdog {
           console.log(chalk.yellow(`\n🚀 Changes detected: ${this.stats.pagesAdded} added, ${this.stats.pagesUpdated} updated`));
           console.log(chalk.yellow('🔄 Triggering both embedding systems...'));
 
+          // Save changed pages list for KG incremental updates
+          await this.saveChangedPagesList();
+
           // Trigger both embedding systems and wait for completion
           const success = await this.triggerBothEmbeddingSystems();
 
           if (success) {
             console.log(chalk.green('\n✅ Embedding systems completed successfully'));
             console.log(chalk.green('🔄 Resuming watchdog monitoring...'));
+
+            // Clear changed pages tracking after successful update
+            this.changedPages.added.clear();
+            this.changedPages.updated.clear();
           } else {
             console.log(chalk.red('\n❌ Embedding systems encountered errors'));
             console.log(chalk.yellow('⏳ Waiting 2 minutes before next cycle...'));
@@ -699,8 +712,10 @@ class StreamlinedOSRSWatchdog {
 
           if (isNewPage) {
             this.stats.pagesAdded++;
+            this.changedPages.added.add(page.title);
           } else {
             this.stats.pagesUpdated++; // Existing page with new/updated content
+            this.changedPages.updated.add(page.title);
           }
           successful++;
 
@@ -748,6 +763,7 @@ class StreamlinedOSRSWatchdog {
       try {
         await this.updatePage(change.title);
         this.stats.pagesUpdated++;
+        this.changedPages.updated.add(change.title);
 
         processed++;
 
@@ -1615,6 +1631,24 @@ print(processed)
   // ═══════════════════════════════════════════════════════════════════════════════
   // EMBEDDING SYSTEMS ORCHESTRATION
   // ═══════════════════════════════════════════════════════════════════════════════
+
+  async saveChangedPagesList() {
+    try {
+      const changedPagesFile = path.join(__dirname, '../data/watchdog_changed_pages.json');
+
+      const changedPagesData = {
+        timestamp: new Date().toISOString(),
+        added: Array.from(this.changedPages.added),
+        updated: Array.from(this.changedPages.updated),
+        total: this.changedPages.added.size + this.changedPages.updated.size
+      };
+
+      fs.writeFileSync(changedPagesFile, JSON.stringify(changedPagesData, null, 2));
+      console.log(chalk.gray(`   💾 Saved ${changedPagesData.total} changed pages for incremental KG updates`));
+    } catch (error) {
+      console.error(chalk.red(`   ⚠️  Failed to save changed pages list: ${error.message}`));
+    }
+  }
 
   async triggerBothEmbeddingSystems() {
     console.log(chalk.yellow('\n🚀 Starting both embedding systems in parallel...'));
