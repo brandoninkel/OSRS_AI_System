@@ -92,13 +92,29 @@ class IncrementalKGEmbeddingUpdater:
         # Load existing embeddings
         if EMBEDDINGS_FILE.exists():
             logger.info(f"📂 Loading existing embeddings from {EMBEDDINGS_FILE}")
+            has_metadata_count = 0
+            no_metadata_count = 0
+
             with open(EMBEDDINGS_FILE, 'r') as f:
                 for line in f:
                     data = json.loads(line)
                     title = data.get('title')
                     if title:
                         self.existing_embeddings[title] = data
+                        # Check if it has metadata
+                        if 'metadata' in data and 'source_pages' in data.get('metadata', {}):
+                            has_metadata_count += 1
+                        else:
+                            no_metadata_count += 1
+
             logger.info(f"✅ Loaded {len(self.existing_embeddings):,} existing embeddings")
+            logger.info(f"   📊 {has_metadata_count:,} with metadata, {no_metadata_count:,} without metadata")
+
+            # If ALL embeddings lack metadata, delete the file and start fresh
+            if no_metadata_count > 0 and has_metadata_count == 0:
+                logger.warning(f"⚠️  All {no_metadata_count:,} embeddings lack metadata - deleting file to start fresh")
+                EMBEDDINGS_FILE.unlink()
+                self.existing_embeddings = {}
         else:
             logger.info("ℹ️  No existing embeddings found - will create from scratch")
         
