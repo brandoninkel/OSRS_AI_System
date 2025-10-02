@@ -225,19 +225,41 @@ class KGAutoUpdater:
                     "--chunk-size", "100"
                 ]
 
-                # Add progress mode if enabled
+                # Monitor file growth and report progress
                 if self.progress_mode:
-                    cmd.append("--progress-mode")
-                    # Stream output to parent process for progress monitoring
-                    process = subprocess.Popen(cmd, cwd=self.repo_root,
-                                              stdout=subprocess.PIPE,
-                                              stderr=subprocess.STDOUT,
-                                              text=True, bufsize=1)
-                    # Forward output line by line
-                    for line in process.stdout:
-                        print(line, end='', flush=True)
-                    result_code = process.wait()
-                    result = type('obj', (object,), {'returncode': result_code})()
+                    import threading
+                    import time
+
+                    output_file = self.data_dir / "kg_entity_embeddings_mxbai.jsonl"
+                    total_entities = 149045  # Known total from entity_to_id.json
+                    stop_monitoring = threading.Event()
+
+                    def monitor_progress():
+                        """Monitor file growth and report progress"""
+                        last_count = 0
+                        while not stop_monitoring.is_set():
+                            try:
+                                if output_file.exists():
+                                    with open(output_file, 'r') as f:
+                                        current_count = sum(1 for _ in f)
+                                    if current_count != last_count:
+                                        progress = 80 + (current_count / total_entities) * 15  # 80-95%
+                                        self.report_progress(progress, f"embedding KG entities ({current_count}/{total_entities})")
+                                        last_count = current_count
+                            except Exception as e:
+                                pass
+                            time.sleep(2)  # Check every 2 seconds
+
+                    # Start monitoring thread
+                    monitor_thread = threading.Thread(target=monitor_progress, daemon=True)
+                    monitor_thread.start()
+
+                    # Run the embedding process
+                    result = subprocess.run(cmd, cwd=self.repo_root, capture_output=True)
+
+                    # Stop monitoring
+                    stop_monitoring.set()
+                    monitor_thread.join(timeout=1)
                 else:
                     result = subprocess.run(cmd, cwd=self.repo_root)
 

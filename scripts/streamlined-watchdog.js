@@ -1857,7 +1857,12 @@ print(processed)
       let outputBuffer = '';
 
       kgProcess.stdout.on('data', (data) => {
-        outputBuffer += data.toString();
+        const text = data.toString();
+        outputBuffer += text;
+        // Debug: log what we're receiving
+        if (text.includes('Progress:') || text.includes('Status:')) {
+          console.log(chalk.gray(`\n[KG stdout] ${text.substring(0, 200)}`));
+        }
         this.parseEmbeddingProgress(outputBuffer, 'kg');
       });
 
@@ -1865,6 +1870,10 @@ print(processed)
         const output = data.toString();
         // Python logging sends INFO to stderr, so parse it for progress
         outputBuffer += output;
+        // Debug: log what we're receiving
+        if (output.includes('Progress:') || output.includes('Status:')) {
+          console.log(chalk.gray(`\n[KG stderr] ${output.substring(0, 200)}`));
+        }
         this.parseEmbeddingProgress(outputBuffer, 'kg');
 
         // Only show actual errors (not INFO or WARNING)
