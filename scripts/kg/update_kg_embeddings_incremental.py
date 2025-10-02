@@ -172,8 +172,17 @@ class IncrementalKGEmbeddingUpdater:
         """Update embeddings incrementally or do full rebuild"""
 
         if full_rebuild:
-            logger.info("🔄 Full rebuild requested - regenerating all embeddings")
-            entities_to_update = list(self.entity_to_id.keys())
+            logger.info("🔄 Full rebuild requested - checking for missing embeddings")
+            all_entities = set(self.entity_to_id.keys())
+            already_embedded = set(self.existing_embeddings.keys())
+            entities_to_update = list(all_entities - already_embedded)
+
+            if entities_to_update:
+                logger.info(f"📊 Found {len(already_embedded):,} existing embeddings")
+                logger.info(f"🚀 Need to embed {len(entities_to_update):,} remaining entities")
+            else:
+                logger.info(f"✅ All {len(all_entities):,} entities already embedded!")
+                return
         elif changed_pages or deleted_pages:
             affected_entities = set()
 
@@ -192,7 +201,7 @@ class IncrementalKGEmbeddingUpdater:
         else:
             logger.error("❌ Must specify either --changed-pages, --deleted-pages, or --full-rebuild")
             return
-        
+
         if not entities_to_update:
             logger.info("✅ No entities to update")
             return
