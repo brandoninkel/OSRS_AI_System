@@ -159,34 +159,34 @@ class KGAutoUpdater:
         return False
 
     def _trigger_kg_update(self):
-        """Trigger incremental KG update in background"""
+        """Trigger incremental KG update (runs synchronously when called from CLI)"""
         if self.update_in_progress:
             logger.info("KG update already in progress, skipping")
             return
-        
+
         self.update_in_progress = True
         self._save_status()
-        
-        def run_update():
-            try:
-                logger.info("🔗 Starting incremental KG update...")
-                self.report_progress(0, "starting KG update")
 
-                # Step 1: Rebuild KG triples from wiki content changes
-                logger.info("🔧 Building KG triples from updated wiki content...")
-                self.report_progress(10, "building KG triples (this may take a while)")
+        # Run update directly (not in thread) for better progress reporting
+        try:
+            logger.info("🔗 Starting incremental KG update...")
+            self.report_progress(0, "starting KG update")
 
-                result = subprocess.run([
-                    "bash", str(self.scripts_dir / "knowledge-graph.command"),
-                    "--workers", "8", "--snapshot"
-                ], cwd=self.repo_root)
+            # Step 1: Rebuild KG triples from wiki content changes
+            logger.info("🔧 Building KG triples from updated wiki content...")
+            self.report_progress(10, "building KG triples (this may take a while)")
 
-                if result.returncode != 0:
-                    logger.error(f"KG triples build failed with return code: {result.returncode}")
-                    return
+            result = subprocess.run([
+                "bash", str(self.scripts_dir / "knowledge-graph.command"),
+                "--workers", "8", "--snapshot"
+            ], cwd=self.repo_root)
 
-                logger.info("✅ KG triples built successfully")
-                self.report_progress(40, "KG triples completed")
+            if result.returncode != 0:
+                logger.error(f"KG triples build failed with return code: {result.returncode}")
+                return
+
+            logger.info("✅ KG triples built successfully")
+            self.report_progress(40, "KG triples completed")
 
                 # Step 2: Train PyKEEN model with new triples
                 kg_model_dir = self.data_dir / "kg_model"
@@ -263,18 +263,14 @@ class KGAutoUpdater:
                         else:
                             logger.error(f"Both embedding methods failed")
 
-                logger.info("🎉 KG auto-update complete!")
-                self.report_progress(100, "completed")
-                
-            except Exception as e:
-                logger.error(f"KG update failed: {e}")
-            finally:
-                self.update_in_progress = False
-                self._save_status()
-        
-        # Run update in background thread
-        update_thread = threading.Thread(target=run_update, daemon=True)
-        update_thread.start()
+            logger.info("🎉 KG auto-update complete!")
+            self.report_progress(100, "completed")
+
+        except Exception as e:
+            logger.error(f"KG update failed: {e}")
+        finally:
+            self.update_in_progress = False
+            self._save_status()
 
     def _signal_rag_reload(self):
         """Signal RAG service to reload embeddings"""
