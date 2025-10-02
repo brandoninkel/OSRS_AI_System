@@ -264,17 +264,9 @@ class IncrementalKGEmbeddingUpdater:
         updated_count = 0
         new_count = 0
 
-        # Rewrite file with unchanged embeddings first, then stream new ones
-        entities_being_updated = set(entities_to_update)
-        logger.info(f"💾 Rewriting file with {len(self.existing_embeddings) - len(entities_being_updated):,} unchanged embeddings...")
-
-        # Rewrite the file with existing embeddings that aren't being updated
-        with open(EMBEDDINGS_FILE, 'w', encoding='utf-8') as f:
-            for entity, entity_data in self.existing_embeddings.items():
-                if entity not in entities_being_updated:
-                    f.write(json.dumps(entity_data) + '\n')
-
-        logger.info(f"💾 Now streaming {len(entities_to_update):,} new/updated embeddings...")
+        # Just append new embeddings - don't rewrite the file
+        # The file already has existing embeddings, we'll just add to it
+        logger.info(f"💾 Streaming {len(entities_to_update):,} new/updated embeddings to file...")
 
         # Create a callback that appends embeddings as they're generated
         def process_chunk_callback(chunk_entities, chunk_embeddings):
