@@ -257,40 +257,55 @@ class IncrementalKGEmbeddingUpdater:
             logger.info("✅ No entities to update")
             return
         
-        # Embed entities with streaming writes
+        # Embed entities with streaming writes to disk
         logger.info(f"🚀 Embedding {len(entities_to_update)} entities with streaming writes...")
         start_time = datetime.now()
 
         updated_count = 0
         new_count = 0
 
-        # Create a callback that writes embeddings as they're generated
+        # Rewrite file with unchanged embeddings first, then stream new ones
+        entities_being_updated = set(entities_to_update)
+        logger.info(f"💾 Rewriting file with {len(self.existing_embeddings) - len(entities_being_updated):,} unchanged embeddings...")
+
+        # Rewrite the file with existing embeddings that aren't being updated
+        with open(EMBEDDINGS_FILE, 'w', encoding='utf-8') as f:
+            for entity, entity_data in self.existing_embeddings.items():
+                if entity not in entities_being_updated:
+                    f.write(json.dumps(entity_data) + '\n')
+
+        logger.info(f"💾 Now streaming {len(entities_to_update):,} new/updated embeddings...")
+
+        # Create a callback that appends embeddings as they're generated
         def process_chunk_callback(chunk_entities, chunk_embeddings):
             nonlocal updated_count, new_count
 
-            for entity, embedding in zip(chunk_entities, chunk_embeddings):
-                if embedding:
-                    entity_data = {
-                        'title': entity,
-                        'text': entity,
-                        'source': 'knowledge_graph',
-                        'kg_entity': True,
-                        'entity_id': self.entity_to_id.get(entity, -1),
-                        'url': f"https://oldschool.runescape.wiki/w/{entity.replace(' ', '_')}",
-                        'embedding': embedding,
-                        'metadata': {
-                            'source_pages': self.entity_to_pages.get(entity, []),
-                            'updated_at': datetime.now().isoformat(),
-                            'embedding_model': 'mxbai-embed-large:latest'
+            with open(EMBEDDINGS_FILE, 'a', encoding='utf-8') as f:
+                for entity, embedding in zip(chunk_entities, chunk_embeddings):
+                    if embedding:
+                        entity_data = {
+                            'title': entity,
+                            'text': entity,
+                            'source': 'knowledge_graph',
+                            'kg_entity': True,
+                            'entity_id': self.entity_to_id.get(entity, -1),
+                            'url': f"https://oldschool.runescape.wiki/w/{entity.replace(' ', '_')}",
+                            'embedding': embedding,
+                            'metadata': {
+                                'source_pages': self.entity_to_pages.get(entity, []),
+                                'updated_at': datetime.now().isoformat(),
+                                'embedding_model': 'mxbai-embed-large:latest'
+                            }
                         }
-                    }
 
-                    if entity in self.existing_embeddings:
-                        updated_count += 1
-                    else:
-                        new_count += 1
+                        if entity in self.existing_embeddings:
+                            updated_count += 1
+                        else:
+                            new_count += 1
 
-                    self.existing_embeddings[entity] = entity_data
+                        # Write immediately to disk
+                        f.write(json.dumps(entity_data) + '\n')
+                        f.flush()  # Force write to disk
 
         # Embed with streaming callback
         asyncio.run(self.embed_entities_streaming(entities_to_update, process_chunk_callback))
@@ -300,14 +315,12 @@ class IncrementalKGEmbeddingUpdater:
         logger.info(f"✅ Embedded {len(entities_to_update)} entities in {elapsed:.1f}s ({rate:.1f} entities/sec)")
         logger.info(f"📊 Updated {updated_count} existing embeddings, added {new_count} new embeddings")
 
-        # Save all embeddings (including unchanged ones)
-        logger.info(f"💾 Saving all embeddings to {EMBEDDINGS_FILE}")
-        with open(EMBEDDINGS_FILE, 'w', encoding='utf-8') as f:
-            for entity_data in self.existing_embeddings.values():
-                f.write(json.dumps(entity_data) + '\n')
-
         logger.info(f"✅ Incremental update complete!")
-        logger.info(f"📈 Total embeddings: {len(self.existing_embeddings):,}")
+
+        # Count final total
+        with open(EMBEDDINGS_FILE, 'r') as f:
+            final_count = sum(1 for _ in f)
+        logger.info(f"📈 Total embeddings in file: {final_count:,}")
 
 
 def main():
