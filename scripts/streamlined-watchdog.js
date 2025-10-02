@@ -60,7 +60,8 @@ class StreamlinedOSRSWatchdog {
     // Track changed pages for incremental KG updates
     this.changedPages = {
       added: new Set(),
-      updated: new Set()
+      updated: new Set(),
+      deleted: new Set()
     };
 
     // KG update tracking
@@ -400,6 +401,7 @@ class StreamlinedOSRSWatchdog {
             // Clear changed pages tracking after successful update
             this.changedPages.added.clear();
             this.changedPages.updated.clear();
+            this.changedPages.deleted.clear();
           } else {
             console.log(chalk.red('\n❌ Embedding systems encountered errors'));
             console.log(chalk.yellow('⏳ Waiting 2 minutes before next cycle...'));
@@ -1640,11 +1642,12 @@ print(processed)
         timestamp: new Date().toISOString(),
         added: Array.from(this.changedPages.added),
         updated: Array.from(this.changedPages.updated),
-        total: this.changedPages.added.size + this.changedPages.updated.size
+        deleted: Array.from(this.changedPages.deleted),
+        total: this.changedPages.added.size + this.changedPages.updated.size + this.changedPages.deleted.size
       };
 
       fs.writeFileSync(changedPagesFile, JSON.stringify(changedPagesData, null, 2));
-      console.log(chalk.gray(`   💾 Saved ${changedPagesData.total} changed pages for incremental KG updates`));
+      console.log(chalk.gray(`   💾 Saved ${changedPagesData.total} changed pages (${this.changedPages.added.size} added, ${this.changedPages.updated.size} updated, ${this.changedPages.deleted.size} deleted)`));
     } catch (error) {
       console.error(chalk.red(`   ⚠️  Failed to save changed pages list: ${error.message}`));
     }

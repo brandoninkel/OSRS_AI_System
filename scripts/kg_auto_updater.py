@@ -229,14 +229,20 @@ class KGAutoUpdater:
                 changed_pages_file = self.data_dir / "watchdog_changed_pages.json"
 
                 # Check if embeddings have metadata (needed for incremental updates)
+                # Check multiple lines to ensure we don't miss metadata due to ordering
                 has_metadata = False
                 if output_file.exists():
                     try:
                         with open(output_file, 'r') as f:
-                            first_line = f.readline()
-                            if first_line:
-                                data = json.loads(first_line)
-                                has_metadata = 'metadata' in data and 'source_pages' in data.get('metadata', {})
+                            # Check first 10 lines to be sure
+                            for i, line in enumerate(f):
+                                if i >= 10:
+                                    break
+                                if line.strip():
+                                    data = json.loads(line)
+                                    if 'metadata' in data and 'source_pages' in data.get('metadata', {}):
+                                        has_metadata = True
+                                        break
                     except Exception:
                         pass
 
@@ -257,17 +263,25 @@ class KGAutoUpdater:
                         changed_data = json.load(f)
 
                     changed_pages = changed_data.get('added', []) + changed_data.get('updated', [])
+                    deleted_pages = changed_data.get('deleted', [])
 
-                    if changed_pages:
+                    total_changes = len(changed_pages) + len(deleted_pages)
+
+                    if total_changes > 0:
                         logger.info(f"🔄 Using incremental KG embedding update (fast)...")
-                        logger.info(f"ℹ️  Processing {len(changed_pages)} changed pages")
-                        self.report_progress(80, f"incremental update ({len(changed_pages)} pages)")
+                        logger.info(f"ℹ️  Processing {len(changed_pages)} changed, {len(deleted_pages)} deleted pages")
+                        self.report_progress(80, f"incremental update ({total_changes} pages)")
 
                         cmd = [
                             "python3", "-u",
-                            str(self.scripts_dir / "kg" / "update_kg_embeddings_incremental.py"),
-                            "--changed-pages", ",".join(changed_pages)
+                            str(self.scripts_dir / "kg" / "update_kg_embeddings_incremental.py")
                         ]
+
+                        if changed_pages:
+                            cmd.extend(["--changed-pages", ",".join(changed_pages)])
+
+                        if deleted_pages:
+                            cmd.extend(["--deleted-pages", ",".join(deleted_pages)])
                     else:
                         logger.info("ℹ️  No changed pages, skipping KG embedding update")
                         self.report_progress(95, "no changes, skipping")

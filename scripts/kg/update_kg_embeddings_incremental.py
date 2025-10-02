@@ -136,19 +136,29 @@ class IncrementalKGEmbeddingUpdater:
         
         return result
     
-    def update_embeddings(self, changed_pages: List[str] = None, full_rebuild: bool = False):
+    def update_embeddings(self, changed_pages: List[str] = None, deleted_pages: List[str] = None, full_rebuild: bool = False):
         """Update embeddings incrementally or do full rebuild"""
-        
+
         if full_rebuild:
             logger.info("🔄 Full rebuild requested - regenerating all embeddings")
             entities_to_update = list(self.entity_to_id.keys())
-        elif changed_pages:
-            logger.info(f"🔍 Finding entities affected by {len(changed_pages)} changed pages...")
-            affected_entities = self.find_affected_entities(changed_pages)
+        elif changed_pages or deleted_pages:
+            affected_entities = set()
+
+            if changed_pages:
+                logger.info(f"🔍 Finding entities affected by {len(changed_pages)} changed pages...")
+                affected_entities.update(self.find_affected_entities(changed_pages))
+
+            if deleted_pages:
+                logger.info(f"🗑️  Finding entities affected by {len(deleted_pages)} deleted pages...")
+                deleted_entities = self.find_affected_entities(deleted_pages)
+                affected_entities.update(deleted_entities)
+                logger.info(f"   Found {len(deleted_entities)} entities from deleted pages")
+
             entities_to_update = list(affected_entities)
-            logger.info(f"✅ Found {len(entities_to_update)} affected entities")
+            logger.info(f"✅ Found {len(entities_to_update)} total affected entities")
         else:
-            logger.error("❌ Must specify either --changed-pages or --full-rebuild")
+            logger.error("❌ Must specify either --changed-pages, --deleted-pages, or --full-rebuild")
             return
         
         if not entities_to_update:
@@ -207,29 +217,36 @@ class IncrementalKGEmbeddingUpdater:
 def main():
     parser = argparse.ArgumentParser(description="Incrementally update KG entity embeddings")
     parser.add_argument('--changed-pages', type=str, help='Comma-separated list of changed page titles')
+    parser.add_argument('--deleted-pages', type=str, help='Comma-separated list of deleted page titles')
     parser.add_argument('--full-rebuild', action='store_true', help='Rebuild all embeddings from scratch')
     parser.add_argument('--auto-detect', action='store_true', help='Auto-detect changes from watchdog metadata')
     parser.add_argument('--batch-size', type=int, default=100, help='Batch size for embedding')
-    
+
     args = parser.parse_args()
-    
+
     updater = IncrementalKGEmbeddingUpdater(batch_size=args.batch_size)
-    
+
     if not updater.initialize():
         logger.error("❌ Initialization failed")
         return 1
-    
-    # Parse changed pages
+
+    # Parse changed and deleted pages
     changed_pages = None
+    deleted_pages = None
+
     if args.changed_pages:
-        changed_pages = [p.strip() for p in args.changed_pages.split(',')]
-    elif args.auto_detect:
+        changed_pages = [p.strip() for p in args.changed_pages.split(',') if p.strip()]
+
+    if args.deleted_pages:
+        deleted_pages = [p.strip() for p in args.deleted_pages.split(',') if p.strip()]
+
+    if args.auto_detect:
         # TODO: Implement auto-detection from watchdog metadata
         logger.warning("⚠️  Auto-detect not yet implemented, use --changed-pages for now")
         return 1
-    
+
     # Update embeddings
-    updater.update_embeddings(changed_pages=changed_pages, full_rebuild=args.full_rebuild)
+    updater.update_embeddings(changed_pages=changed_pages, deleted_pages=deleted_pages, full_rebuild=args.full_rebuild)
     
     return 0
 
