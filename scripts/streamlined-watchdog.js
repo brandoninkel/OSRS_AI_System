@@ -1747,10 +1747,14 @@ print(processed)
 
   parseEmbeddingProgress(output, type) {
     // Look for progress indicators in the output
-    const progressMatch = output.match(/Progress:\s*(\d+(?:\.\d+)?)%/);
+    const progressMatch = output.match(/Progress:\s*(\d+(?:\.\d+)?)/);
     if (progressMatch) {
       const progress = parseFloat(progressMatch[1]);
       this.embeddingProgress[type].progress = progress;
+      // Debug: confirm parsing
+      if (type === 'kg' && progress > 0) {
+        console.log(chalk.gray(`\n[DEBUG] Parsed KG progress: ${progress}%`));
+      }
     }
 
     // Look for status updates

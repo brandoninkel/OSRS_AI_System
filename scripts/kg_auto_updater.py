@@ -215,6 +215,13 @@ class KGAutoUpdater:
                 logger.info("⚡ Using async mode with max concurrency for full system utilization")
                 self.report_progress(80, "creating KG embeddings (~149k entities)")
 
+                output_file = self.data_dir / "kg_entity_embeddings_mxbai.jsonl"
+
+                # Clear the output file before starting to avoid confusion from old data
+                if output_file.exists():
+                    logger.info(f"🗑️  Clearing old embeddings file: {output_file}")
+                    output_file.unlink()
+
                 # Use the same high-performance approach as the main embeddings system
                 cmd = [
                     "python3", "-u",  # Unbuffered output for real-time progress
@@ -230,7 +237,6 @@ class KGAutoUpdater:
                     import threading
                     import time
 
-                    output_file = self.data_dir / "kg_entity_embeddings_mxbai.jsonl"
                     total_entities = 149045  # Known total from entity_to_id.json
                     stop_monitoring = threading.Event()
 
