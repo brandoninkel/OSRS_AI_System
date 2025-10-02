@@ -1756,11 +1756,8 @@ print(processed)
         outputBuffer += output;
         this.parseEmbeddingProgress(outputBuffer, 'regular');
 
-        // Only show actual errors (not INFO, WARNING, or SSL warnings)
-        if (!output.includes('INFO') &&
-            !output.includes('WARNING') &&
-            !output.includes('NotOpenSSLWarning') &&
-            !output.includes('urllib3')) {
+        // Only show actual errors (not INFO or WARNING)
+        if (!output.includes('INFO') && !output.includes('WARNING')) {
           console.error(chalk.red(`Regular embeddings error: ${output}`));
         }
       });
