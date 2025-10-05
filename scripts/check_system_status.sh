@@ -51,22 +51,21 @@ check_process() {
 
 # Check all services
 echo -e "${YELLOW}Services:${NC}"
-check_process "📡 Streamlined Watchdog" "$PID_DIR/watchdog.pid"
-check_process "💰 GE Update Daemon   " "$PID_DIR/ge_daemon.pid"
-check_process "🔧 OSRS API Server    " "$PID_DIR/api_server.pid" "5001"
-check_process "🎨 Frontend GUI       " "$PID_DIR/frontend.pid" "3005"
+check_process "📡 Streamlined Watchdog (+ GE)" "$PID_DIR/watchdog.pid"
+check_process "🔧 OSRS API Server          " "$PID_DIR/api_server.pid" "5001"
+check_process "🎨 Frontend GUI             " "$PID_DIR/frontend.pid" "3005"
 
 echo ""
 echo -e "${YELLOW}Recent Log Activity:${NC}"
 
+if [ -f "$LOG_DIR/watchdog.out" ]; then
+    echo -e "  ${BLUE}Watchdog (last 3 lines):${NC}"
+    tail -3 "$LOG_DIR/watchdog.out" | sed 's/^/    /'
+fi
+
 if [ -f "$LOG_DIR/api.out" ]; then
     echo -e "  ${BLUE}API Server (last 3 lines):${NC}"
     tail -3 "$LOG_DIR/api.out" | sed 's/^/    /'
-fi
-
-if [ -f "$LOG_DIR/ge_daemon.out" ]; then
-    echo -e "  ${BLUE}GE Daemon (last 3 lines):${NC}"
-    tail -3 "$LOG_DIR/ge_daemon.out" | sed 's/^/    /'
 fi
 
 echo ""

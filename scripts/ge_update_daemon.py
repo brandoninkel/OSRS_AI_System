@@ -437,10 +437,44 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        print(f"\n❌ Fatal error: {e}")
-        sys.exit(1)
+    import argparse
+
+    parser = argparse.ArgumentParser(description='GE Update Daemon')
+    parser.add_argument('--single-update', action='store_true',
+                       help='Run a single update and exit (for watchdog integration)')
+    args = parser.parse_args()
+
+    if args.single_update:
+        # Single update mode for watchdog integration
+        try:
+            logger.info("Running single GE update (watchdog mode)")
+
+            # Initialize services
+            price_service = PriceHistoryService()
+            analytics_service = PriceAnalyticsService()
+
+            # Verify database
+            verify_database(price_service)
+
+            # Run single update
+            success = run_update(price_service, analytics_service)
+
+            if success:
+                logger.info("✅ Single update completed successfully")
+                sys.exit(0)
+            else:
+                logger.error("❌ Single update failed")
+                sys.exit(1)
+
+        except Exception as e:
+            logger.error(f"Fatal error in single update: {e}", exc_info=True)
+            sys.exit(1)
+    else:
+        # Normal daemon mode
+        try:
+            sys.exit(main())
+        except Exception as e:
+            logger.error(f"Fatal error: {e}", exc_info=True)
+            print(f"\n❌ Fatal error: {e}")
+            sys.exit(1)
 

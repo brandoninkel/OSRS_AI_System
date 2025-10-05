@@ -2,12 +2,14 @@
 
 ###############################################################################
 # OSRS AI System - Complete System Startup Script
-# 
+#
 # This script starts all components of the OSRS AI system:
-# 1. Streamlined Watchdog (wiki monitoring with completion-based orchestration)
-# 2. GE Update Daemon (real-time price updates every 5 minutes)
-# 3. OSRS API Server (Flask API with RAG, embeddings, price history)
-# 4. Frontend GUI (React PWA on port 3005)
+# 1. Streamlined Watchdog (wiki monitoring + GE updates with completion-based orchestration)
+# 2. OSRS API Server (Flask API with RAG, embeddings, price history)
+# 3. Frontend GUI (React PWA on port 3005)
+#
+# NOTE: GE updates are now integrated into the watchdog cycle for sequential
+#       execution and better API coordination. No separate GE daemon needed!
 #
 # All processes run in the background with proper logging.
 # Use stop_all_systems.sh to gracefully shut down all services.
@@ -40,9 +42,9 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 
 ###############################################################################
-# 1. Start Streamlined Watchdog (Wiki Monitoring)
+# 1. Start Streamlined Watchdog (Wiki Monitoring + GE Updates)
 ###############################################################################
-echo -e "${YELLOW}📡 Starting Streamlined Watchdog...${NC}"
+echo -e "${YELLOW}📡 Starting Streamlined Watchdog (with integrated GE updates)...${NC}"
 
 if [ -f "$PID_DIR/watchdog.pid" ]; then
     OLD_PID=$(cat "$PID_DIR/watchdog.pid")
@@ -61,6 +63,7 @@ if [ ! -f "$PID_DIR/watchdog.pid" ]; then
     echo $WATCHDOG_PID > "$PID_DIR/watchdog.pid"
     echo -e "${GREEN}   ✅ Watchdog started (PID: $WATCHDOG_PID)${NC}"
     echo -e "${GREEN}      Log: $LOG_DIR/watchdog.out${NC}"
+    echo -e "${GREEN}      Includes: Wiki monitoring + GE price updates${NC}"
 else
     echo -e "${GREEN}   ✅ Watchdog already running${NC}"
 fi
@@ -68,36 +71,7 @@ fi
 sleep 2
 
 ###############################################################################
-# 2. Start GE Update Daemon (Price Updates)
-###############################################################################
-echo -e "${YELLOW}💰 Starting GE Update Daemon...${NC}"
-
-if [ -f "$PID_DIR/ge_daemon.pid" ]; then
-    OLD_PID=$(cat "$PID_DIR/ge_daemon.pid")
-    if ps -p $OLD_PID > /dev/null 2>&1; then
-        echo -e "${YELLOW}   ⚠️  GE Daemon already running (PID: $OLD_PID)${NC}"
-    else
-        echo -e "${YELLOW}   Cleaning up stale PID file${NC}"
-        rm "$PID_DIR/ge_daemon.pid"
-    fi
-fi
-
-if [ ! -f "$PID_DIR/ge_daemon.pid" ]; then
-    cd "$PROJECT_ROOT/scripts"
-    nohup python3 ge_update_daemon.py > "$LOG_DIR/ge_daemon.out" 2>&1 &
-    GE_PID=$!
-    echo $GE_PID > "$PID_DIR/ge_daemon.pid"
-    echo -e "${GREEN}   ✅ GE Daemon started (PID: $GE_PID)${NC}"
-    echo -e "${GREEN}      Log: $LOG_DIR/ge_daemon.out${NC}"
-    echo -e "${GREEN}      Updates every 5 minutes${NC}"
-else
-    echo -e "${GREEN}   ✅ GE Daemon already running${NC}"
-fi
-
-sleep 2
-
-###############################################################################
-# 3. Start OSRS API Server (Flask API)
+# 2. Start OSRS API Server (Flask API)
 ###############################################################################
 echo -e "${YELLOW}🔧 Starting OSRS API Server...${NC}"
 
@@ -143,7 +117,7 @@ fi
 sleep 3
 
 ###############################################################################
-# 4. Start Frontend GUI (React PWA)
+# 3. Start Frontend GUI (React PWA)
 ###############################################################################
 echo -e "${YELLOW}🎨 Starting Frontend GUI...${NC}"
 
@@ -202,17 +176,9 @@ if [ -f "$PID_DIR/watchdog.pid" ]; then
     PID=$(cat "$PID_DIR/watchdog.pid")
     if ps -p $PID > /dev/null 2>&1; then
         echo -e "  📡 Streamlined Watchdog: ${GREEN}RUNNING${NC} (PID: $PID)"
+        echo -e "     ${GREEN}(includes GE updates)${NC}"
     else
         echo -e "  📡 Streamlined Watchdog: ${RED}STOPPED${NC}"
-    fi
-fi
-
-if [ -f "$PID_DIR/ge_daemon.pid" ]; then
-    PID=$(cat "$PID_DIR/ge_daemon.pid")
-    if ps -p $PID > /dev/null 2>&1; then
-        echo -e "  💰 GE Update Daemon:    ${GREEN}RUNNING${NC} (PID: $PID)"
-    else
-        echo -e "  💰 GE Update Daemon:    ${RED}STOPPED${NC}"
     fi
 fi
 

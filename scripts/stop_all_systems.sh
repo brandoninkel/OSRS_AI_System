@@ -51,11 +51,10 @@ stop_process() {
     fi
 }
 
-# Stop all services
+# Stop all services (in reverse order of startup)
 stop_process "Frontend GUI" "$PID_DIR/frontend.pid"
 stop_process "OSRS API Server" "$PID_DIR/api_server.pid"
-stop_process "GE Update Daemon" "$PID_DIR/ge_daemon.pid"
-stop_process "Streamlined Watchdog" "$PID_DIR/watchdog.pid"
+stop_process "Streamlined Watchdog (includes GE updates)" "$PID_DIR/watchdog.pid"
 
 echo ""
 echo -e "${GREEN}========================================${NC}"

@@ -427,6 +427,15 @@ class StreamlinedOSRSWatchdog {
           isFirstCycle = false;
         }
 
+        // Update GE prices as part of the cycle (always run, not dependent on wiki changes)
+        console.log(chalk.yellow('\n💰 Updating GE prices...'));
+        const geSuccess = await this.updateGEPrices();
+        if (geSuccess) {
+          console.log(chalk.green('✅ GE prices updated successfully'));
+        } else {
+          console.log(chalk.yellow('⚠️  GE price update had issues (check logs)'));
+        }
+
         if (hasChanges) {
           console.log(chalk.yellow(`\n🚀 Changes detected: ${this.stats.pagesAdded} added, ${this.stats.pagesUpdated} updated`));
           console.log(chalk.yellow('🔄 Triggering both embedding systems...'));
@@ -451,7 +460,7 @@ class StreamlinedOSRSWatchdog {
             await this.sleep(2 * 60 * 1000);
           }
         } else {
-          console.log(chalk.green('✅ No changes detected, skipping embedding updates'));
+          console.log(chalk.green('✅ No wiki changes detected, skipping embedding updates'));
           console.log(chalk.gray('⏳ Waiting 10 minutes before next cycle...'));
           console.log(chalk.yellow('💡 Press any key to start cycle now'));
           await this.waitWithKeypress(10 * 60 * 1000);
@@ -2065,6 +2074,86 @@ print(processed)
         resolve();
       });
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // GE PRICE UPDATES (INTEGRATED)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  async updateGEPrices() {
+    /**
+     * Update GE prices as part of the watchdog cycle.
+     * This runs the GE update daemon logic inline, avoiding separate process conflicts.
+     *
+     * Benefits:
+     * - Sequential execution with wiki updates
+     * - No API conflicts (Prices API vs MediaWiki API)
+     * - Part of completion-based orchestration
+     * - Simpler process management
+     */
+    try {
+      const { spawn } = require('child_process');
+      const path = require('path');
+
+      console.log(chalk.blue('   🔄 Fetching latest GE prices from Weird Gloop API...'));
+
+      return new Promise((resolve) => {
+        const geProcess = spawn('python3', [
+          path.join(__dirname, 'ge_update_daemon.py'),
+          '--single-update'  // Run once, don't loop
+        ], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: path.join(__dirname, '..')
+        });
+
+        let hasOutput = false;
+
+        geProcess.stdout.on('data', (data) => {
+          const output = data.toString();
+          hasOutput = true;
+          // Show key updates
+          if (output.includes('✅') || output.includes('📊') || output.includes('💾')) {
+            console.log(chalk.gray(`   ${output.trim()}`));
+          }
+        });
+
+        geProcess.stderr.on('data', (data) => {
+          const output = data.toString();
+          // Only show actual errors, not INFO logs
+          if (!output.includes('INFO') && !output.includes('DEBUG')) {
+            console.error(chalk.red(`   GE update error: ${output.trim()}`));
+          }
+        });
+
+        geProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log(chalk.green('   ✅ GE prices updated successfully'));
+            resolve(true);
+          } else {
+            console.log(chalk.yellow(`   ⚠️  GE update exited with code ${code}`));
+            resolve(false);
+          }
+        });
+
+        geProcess.on('error', (error) => {
+          console.error(chalk.red(`   ❌ Failed to run GE update: ${error.message}`));
+          resolve(false);
+        });
+
+        // Timeout after 2 minutes
+        setTimeout(() => {
+          if (!hasOutput) {
+            console.log(chalk.yellow('   ⚠️  GE update timeout (2 minutes)'));
+            geProcess.kill();
+            resolve(false);
+          }
+        }, 2 * 60 * 1000);
+      });
+
+    } catch (error) {
+      console.error(chalk.red(`   ❌ GE update error: ${error.message}`));
+      return false;
+    }
   }
 }
 
