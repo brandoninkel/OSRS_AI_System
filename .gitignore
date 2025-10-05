@@ -6,6 +6,8 @@ old/
 
 # Large data files - TOO LARGE FOR GIT (3GB+)
 # These should be stored locally or in cloud storage, not in git
+
+# Wiki & Knowledge Graph data files
 data/osrs_embeddings.jsonl
 data/kg_entity_embeddings_mxbai.jsonl
 data/osrs_wiki_content.jsonl
@@ -18,6 +20,13 @@ data/kg_page_to_entities.json
 data/osrs_template_issues.jsonl
 data/kg_model/entity_embeddings.npy
 data/kg_model/adjacency.npz
+
+# GE Price History Database - TOO LARGE FOR GIT (2.1GB+)
+# Contains 13.8M historical price records from 2015-present
+# Database includes complete price history and pre-computed analytics
+# with moving averages (7d, 14d, 30d, 50d, 100d, 200d)
+data/price_history.db
+data/price_history.db-journal
 
 # Other large data files
 *.json.gz
@@ -55,6 +64,7 @@ __pycache__/
 logs/
 *.log
 *.pid
+api/logs/
 
 # OS
 .DS_Store
