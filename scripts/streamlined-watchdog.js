@@ -101,8 +101,32 @@ class StreamlinedOSRSWatchdog {
       kg: { active: false, progress: 0, status: 'idle' },
       regular: { active: false, progress: 0, status: 'idle' }
     };
+
+    // API server URL for queue coordination
+    this.apiServerUrl = process.env.OSRS_API_URL || 'http://localhost:5001';
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // API COORDINATION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  async signalWatchdogStatus(active) {
+    try {
+      await axios.post(`${this.apiServerUrl}/watchdog/status`, { active }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 5000
+      });
+
+      if (active) {
+        console.log(chalk.yellow('🚨 Signaled API: Watchdog ACTIVE - Other API calls will be throttled'));
+      } else {
+        console.log(chalk.green('✅ Signaled API: Watchdog INACTIVE - Normal API rates resumed'));
+      }
+    } catch (error) {
+      console.log(chalk.gray(`   ℹ️  Could not signal watchdog status to API: ${error.message}`));
+      // Don't fail the watchdog if API is unavailable
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // MAIN EXECUTION
@@ -115,6 +139,9 @@ class StreamlinedOSRSWatchdog {
 
     try {
       await this.initialize();
+
+      // Signal API that watchdog is starting
+      await this.signalWatchdogStatus(true);
 
 
       // Optional full refetch mode (Option B)
@@ -148,6 +175,9 @@ class StreamlinedOSRSWatchdog {
       // Check if KG system needs initial sync
       await this.checkKGSyncStatus();
 
+      // Signal API that watchdog initial run is complete
+      await this.signalWatchdogStatus(false);
+
       // Choose monitoring mode based on flags
       if (this.completionBased) {
         await this.startCompletionBasedMonitoring();
@@ -156,6 +186,7 @@ class StreamlinedOSRSWatchdog {
       }
     } catch (error) {
       console.error(chalk.red(`❌ Fatal error: ${error.message}`));
+      await this.signalWatchdogStatus(false); // Ensure we signal inactive on error
       process.exit(1);
     }
   }
@@ -332,8 +363,14 @@ class StreamlinedOSRSWatchdog {
       console.log(chalk.blue(`\n🔄 Full scan cycle... ${new Date().toLocaleTimeString()}`));
       console.log(chalk.blue('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
 
+      // Signal watchdog active for this cycle
+      await this.signalWatchdogStatus(true);
+
       // Do complete update cycle (scan for new pages + check for updates)
       await this.updateCollection();
+
+      // Signal watchdog inactive after cycle
+      await this.signalWatchdogStatus(false);
 
     }, 10 * 60 * 1000);
 
@@ -374,8 +411,14 @@ class StreamlinedOSRSWatchdog {
           // Reset stats for this cycle
           this.resetStats();
 
+          // Signal watchdog active for this cycle
+          await this.signalWatchdogStatus(true);
+
           // Do complete update cycle (scan for new pages + check for updates)
           await this.updateCollection();
+
+          // Signal watchdog inactive after cycle
+          await this.signalWatchdogStatus(false);
 
           // Check if changes warrant embedding updates
           hasChanges = this.stats.pagesAdded > 0 || this.stats.pagesUpdated > 0;
