@@ -51,6 +51,11 @@ class OSRSAPIServer:
         self.queue_manager = get_api_queue_manager()
         logger.info("✅ API queue manager initialized")
 
+        # Initialize citation tool for wiki page search
+        from citation_tool import get_citation_tool
+        self.citation_tool = get_citation_tool()
+        logger.info("✅ Citation tool initialized")
+
         # Setup routes
         self.setup_routes()
     
@@ -450,6 +455,56 @@ class OSRSAPIServer:
 
             except Exception as e:
                 logger.error(f"Error comparing items: {e}")
+                return jsonify({
+                    'error': str(e),
+                    'success': False
+                }), 500
+
+        @self.app.route('/economic/tracked_items', methods=['GET'])
+        def get_tracked_items():
+            """Get list of items that have been tracked"""
+            try:
+                limit = request.args.get('limit', 100, type=int)
+                items = self.price_history_service.get_tracked_items(limit)
+
+                return jsonify({
+                    'items': items,
+                    'count': len(items),
+                    'success': True
+                })
+
+            except Exception as e:
+                logger.error(f"Error getting tracked items: {e}")
+                return jsonify({
+                    'error': str(e),
+                    'success': False
+                }), 500
+
+        @self.app.route('/wiki/search', methods=['GET'])
+        def search_wiki_pages():
+            """Search wiki pages by title for autocomplete"""
+            try:
+                query = request.args.get('q', '')
+                limit = request.args.get('limit', 100, type=int)
+
+                if not query:
+                    return jsonify({
+                        'error': 'Missing query parameter',
+                        'success': False
+                    }), 400
+
+                # Search wiki pages using citation tool
+                results = self.citation_tool.search_page_titles(query, limit)
+
+                return jsonify({
+                    'query': query,
+                    'results': results,
+                    'count': len(results),
+                    'success': True
+                })
+
+            except Exception as e:
+                logger.error(f"Error searching wiki pages: {e}")
                 return jsonify({
                     'error': str(e),
                     'success': False
