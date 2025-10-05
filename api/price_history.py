@@ -209,32 +209,31 @@ class PriceHistoryService:
         """Get price history for an item over the last N hours"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
-        cutoff_time = int(time.time()) - (hours * 3600)
-        
+
+        # Convert hours to milliseconds for timestamp comparison
+        cutoff_time = int((time.time() - (hours * 3600)) * 1000)
+
         cursor.execute("""
-            SELECT item_name, item_id, high_price, low_price, high_time, low_time, timestamp, created_at
-            FROM price_history
+            SELECT item_name, item_id, price, volume, timestamp, data_source
+            FROM price_history_complete
             WHERE item_name = ? AND timestamp >= ?
             ORDER BY timestamp ASC
         """, (item_name, cutoff_time))
-        
+
         rows = cursor.fetchall()
         conn.close()
-        
+
         history = []
         for row in rows:
             history.append({
                 'item_name': row[0],
                 'item_id': row[1],
-                'high_price': row[2],
-                'low_price': row[3],
-                'high_time': row[4],
-                'low_time': row[5],
-                'timestamp': row[6],
-                'created_at': row[7]
+                'price': row[2],
+                'volume': row[3],
+                'timestamp': row[4],
+                'data_source': row[5]
             })
-        
+
         return history
     
     def get_price_trend(self, item_name: str, hours: int = 24) -> Dict[str, Any]:
@@ -250,12 +249,12 @@ class PriceHistoryService:
             }
         
         # Calculate trend
-        first_price = (history[0]['high_price'] + history[0]['low_price']) // 2
-        last_price = (history[-1]['high_price'] + history[-1]['low_price']) // 2
-        
+        first_price = history[0]['price']
+        last_price = history[-1]['price']
+
         price_change = last_price - first_price
         percent_change = (price_change / first_price * 100) if first_price > 0 else 0
-        
+
         # Determine trend direction
         if percent_change > 5:
             trend = 'rising'
@@ -263,13 +262,13 @@ class PriceHistoryService:
             trend = 'falling'
         else:
             trend = 'stable'
-        
+
         # Calculate volatility (standard deviation of prices)
-        prices = [(h['high_price'] + h['low_price']) // 2 for h in history]
+        prices = [h['price'] for h in history]
         avg_price = sum(prices) // len(prices)
         variance = sum((p - avg_price) ** 2 for p in prices) // len(prices)
         volatility = int(variance ** 0.5)
-        
+
         return {
             'item_name': item_name,
             'trend': trend,
@@ -281,8 +280,8 @@ class PriceHistoryService:
             'volatility': volatility,
             'data_points': len(history),
             'time_range_hours': hours,
-            'highest_price': max(h['high_price'] for h in history),
-            'lowest_price': min(h['low_price'] for h in history)
+            'highest_price': max(h['price'] for h in history),
+            'lowest_price': min(h['price'] for h in history)
         }
     
     def get_multiple_trends(self, item_names: List[str], hours: int = 24) -> List[Dict[str, Any]]:
@@ -343,7 +342,7 @@ class PriceHistoryService:
 
         cursor.execute("""
             SELECT DISTINCT item_name
-            FROM price_history_latest
+            FROM price_history_complete
             ORDER BY timestamp DESC
             LIMIT ?
         """, (limit,))

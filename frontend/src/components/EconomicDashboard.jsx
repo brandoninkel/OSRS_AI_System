@@ -233,10 +233,13 @@ export default function EconomicDashboard() {
               onChange={e => setTimeRange(Number(e.target.value))}
               className="px-3 py-2 rounded-md border bg-background text-foreground"
             >
-              <option value={6}>6 hours</option>
-              <option value={12}>12 hours</option>
               <option value={24}>24 hours</option>
               <option value={168}>7 days</option>
+              <option value={336}>14 days</option>
+              <option value={720}>30 days</option>
+              <option value={2160}>90 days</option>
+              <option value={4320}>180 days</option>
+              <option value={8760}>1 year</option>
             </select>
             <Button onClick={fetchPriceHistory} disabled={loading}>
               {loading ? 'Loading...' : 'Search'}
