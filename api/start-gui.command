@@ -1,17 +1,20 @@
 #!/bin/bash
-# macOS launcher for OSRS AI: starts Ollama (if needed), RAG API, and GUI server
+# macOS launcher for OSRS AI: starts Ollama (if needed), RAG API, and Admin GUI
 # Usage:
 #   Double-click in Finder, or run from terminal:
-#     ./start-gui.command [--with-embedder]
+#     ./start-gui.command [--with-embedder] [--with-watchdog] [--with-kg] [--basic-only]
 #
 # Options:
 #   --with-embedder   Also start the incremental embedding watcher (follow mode)
 #                     so new/changed wiki pages are embedded automatically.
+#   --with-watchdog   Also start the streamlined wiki watchdog (auto-enables embedder and KG)
+#   --with-kg         Also start the KG auto-updater service
+#   --basic-only      Start only core services (API, RAG) without watchdog/embedder/KG
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 API_DIR="${REPO_ROOT}/api"
 GUI_DIR="${REPO_ROOT}/gui"
 FRONTEND_DIR="${REPO_ROOT}/frontend"
@@ -31,8 +34,13 @@ export OSRS_EXCERPTS_PER_DOC="2"
 # Increase Python stdout flushing for real-time logs
 export PYTHONUNBUFFERED="1"
 
+# --- Helpers (define functions first) ---
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
 WITH_EMBEDDER=0
 WITH_WATCHDOG=0
+WITH_KG=0
+BASIC_ONLY=0
 # Parse flags (support multiple)
 for arg in "$@"; do
   case "$arg" in
@@ -42,11 +50,22 @@ for arg in "$@"; do
     --with-watchdog)
       WITH_WATCHDOG=1
       ;;
+    --with-kg)
+      WITH_KG=1
+      ;;
+    --basic-only)
+      BASIC_ONLY=1
+      ;;
   esac
 done
 
-# --- Helpers ---
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+# If basic-only mode, disable all extras
+if [[ ${BASIC_ONLY} -eq 1 ]]; then
+  log "🔧 Basic-only mode: Starting core services only (API, RAG)"
+  WITH_EMBEDDER=0
+  WITH_WATCHDOG=0
+  WITH_KG=0
+fi
 
 check_cmd() {
   command -v "$1" >/dev/null 2>&1
@@ -100,39 +119,11 @@ start_api() {
 }
 
 start_gui() {
-  local mode
-  if [[ -n "${GUI_MODE:-}" ]]; then
-    mode="${GUI_MODE}"
-  else
-    if [[ -d "${FRONTEND_DIR}" ]]; then
-      mode="vite-dev"
-      log "GUI_MODE not set; detected frontend directory. Defaulting to Vite dev frontend."
-    else
-      mode="static"
-    fi
-  fi
-
-  if [[ "${mode}" == "vite-dev" ]]; then
-    log "Starting Frontend (Vite dev server) ..."
-    cd "${FRONTEND_DIR}"
-    if [[ ! -d node_modules ]]; then
-      if ! command -v npm >/dev/null 2>&1; then
-        log "Error: npm not found in PATH. Install Node.js/npm to use the Vite frontend."
-        exit 1
-      fi
-      log "Installing frontend dependencies (npm install) ..."
-      npm install >"${LOG_DIR}/frontend_install.out" 2>&1 || true
-    fi
-    nohup npm run dev -- --port 3005 >"${LOG_DIR}/frontend.out" 2>&1 &
-    echo $! >"${LOG_DIR}/frontend.pid"
-    log "Frontend (Vite) PID $(cat "${LOG_DIR}/frontend.pid") | Logs: ${LOG_DIR}/frontend.out"
-  else
-    log "Starting GUI server ..."
-    cd "${GUI_DIR}"
-    nohup "${PY_BIN}" serve-rag-gui.py >"${LOG_DIR}/gui.out" 2>&1 &
-    echo $! >"${LOG_DIR}/gui.pid"
-    log "GUI PID $(cat "${LOG_DIR}/gui.pid") | Logs: ${LOG_DIR}/gui.out"
-  fi
+  log "Starting Modern Admin GUI (DearPyGui) ..."
+  cd "${REPO_ROOT}/admin"
+  nohup "${PY_BIN}" modern_admin_gui.py >"${LOG_DIR}/admin_gui.out" 2>&1 &
+  echo $! >"${LOG_DIR}/admin_gui.pid"
+  log "Modern Admin GUI PID $(cat "${LOG_DIR}/admin_gui.pid") | Logs: ${LOG_DIR}/admin_gui.out"
 }
 
 start_embedder_if_requested() {
@@ -151,6 +142,32 @@ start_embedder_if_requested() {
   fi
 }
 
+start_kg_if_requested() {
+  if [[ ${WITH_KG} -eq 1 ]]; then
+    # Initialize KG if not already built
+    if [[ ! -f "${REPO_ROOT}/data/osrs_kg_triples.csv" ]]; then
+      log "Building initial KG triples ..."
+      cd "${SCRIPTS_DIR}"
+      if [[ -f "knowledge-graph.command" ]]; then
+        bash knowledge-graph.command --workers 4 >"${LOG_DIR}/kg_build.out" 2>&1
+        log "KG triples built | Logs: ${LOG_DIR}/kg_build.out"
+      fi
+    fi
+
+    # Start KG auto-update service
+    if [[ -f "${SCRIPTS_DIR}/kg_auto_updater.py" ]]; then
+      log "Starting KG auto-update service ..."
+      cd "${SCRIPTS_DIR}"
+      nohup /usr/bin/env python3 kg_auto_updater.py --follow \
+        >"${LOG_DIR}/kg_updater.out" 2>&1 &
+      echo $! >"${LOG_DIR}/kg_updater.pid"
+      log "KG Updater PID $(cat "${LOG_DIR}/kg_updater.pid") | Logs: ${LOG_DIR}/kg_updater.out"
+    else
+      log "KG auto-updater not found at ${SCRIPTS_DIR}/kg_auto_updater.py (skipping)"
+    fi
+  fi
+}
+
 start_watchdog_if_requested() {
   if [[ ${WITH_WATCHDOG} -eq 1 ]]; then
     if [[ -f "${SCRIPTS_DIR}/streamlined-watchdog.js" ]]; then
@@ -164,6 +181,11 @@ start_watchdog_if_requested() {
         log "Enabling embedder because --with-watchdog was requested"
         WITH_EMBEDDER=1
       fi
+      # Ensure KG follows when watchdog is enabled
+      if [[ ${WITH_KG} -eq 0 ]]; then
+        log "Enabling KG auto-updates because --with-watchdog was requested"
+        WITH_KG=1
+      fi
     else
       log "Watchdog script not found at ${SCRIPTS_DIR}/streamlined-watchdog.js (skipping)"
     fi
@@ -172,22 +194,11 @@ start_watchdog_if_requested() {
 
 print_endpoints() {
   log "Ready:"
-  local mode
-  if [[ -n "${GUI_MODE:-}" ]]; then
-    mode="${GUI_MODE}"
-  else
-    if [[ -d "${FRONTEND_DIR}" ]]; then
-      mode="vite-dev"
-    else
-      mode="static"
-    fi
-  fi
-  if [[ "${mode}" == "vite-dev" ]]; then
-    log "  GUI (Vite Dev): http://localhost:3005"
-  else
-    log "  GUI:   http://localhost:3002"
-  fi
-  log "  API:   http://localhost:5002 (health: /health, stats: /stats)"
+  log "  Admin GUI: Desktop application (DearPyGui)"
+  log "  API:       http://localhost:5002 (health: /health, stats: /stats)"
+  log ""
+  log "The Admin GUI should open automatically in a desktop window."
+  log "If it doesn't appear, check the logs: ${LOG_DIR}/admin_gui.out"
 }
 
 main() {
@@ -199,6 +210,7 @@ main() {
   start_gui
   start_watchdog_if_requested
   start_embedder_if_requested
+  start_kg_if_requested
   print_endpoints
 }
 

@@ -8,13 +8,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOG_DIR="${REPO_ROOT}/logs/osrs_ai"
+KG_LOG_DIR="${REPO_ROOT}/logs/kg"
 API_PID_FILE="${LOG_DIR}/api.pid"
 GUI_PID_FILE="${LOG_DIR}/gui.pid"
 FRONTEND_PID_FILE="${LOG_DIR}/frontend.pid"
 EMB_PID_FILE="${LOG_DIR}/embedder.pid"
 WATCHDOG_PID_FILE="${LOG_DIR}/watchdog.pid"
+KG_UPDATER_PID_FILE="${KG_LOG_DIR}/kg_updater.pid"
 
 AND_OLLAMA=0
 if [[ "${1:-}" == "--and-ollama" ]]; then
@@ -73,6 +75,7 @@ main() {
   stop_by_pidfile "${FRONTEND_PID_FILE}" "Frontend (Vite)"
   stop_by_pidfile "${EMB_PID_FILE}" "Embedder"
   stop_by_pidfile "${WATCHDOG_PID_FILE}" "Watchdog"
+  stop_by_pidfile "${KG_UPDATER_PID_FILE}" "KG Auto-Updater"
 
   # Fallback by ports
   stop_by_port 5001 "RAG API"
