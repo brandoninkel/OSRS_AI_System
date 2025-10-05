@@ -8,9 +8,10 @@
 5. [Running the System](#running-the-system)
 6. [API Endpoints](#api-endpoints)
 7. [Core Components](#core-components)
-8. [Data Files](#data-files)
-9. [Configuration](#configuration)
-10. [Troubleshooting](#troubleshooting)
+8. [GE Price History System](#ge-price-history-system)
+9. [Data Files](#data-files)
+10. [Configuration](#configuration)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -815,11 +816,292 @@ These files have been moved to `api/old/` as they are no longer actively used in
 
 ---
 
+## GE Price History System
+
+### Overview
+
+The GE (Grand Exchange) Price History System provides comprehensive historical price data and analytics for all OSRS items.
+
+**Status**: ✅ **PRODUCTION READY**
+
+**Key Features**:
+- **13.8 million historical price records** from March 2015 to present
+- **4,321 items** with complete price history
+- **6 moving average periods**: 7d, 14d, 30d, 50d, 100d, 200d
+- **Automatic database verification** and repair on startup
+- **Real-time updates** every 5 minutes
+- **Comprehensive analytics**: price changes, volatility, OHLC, volume metrics
+- **API compliant**: Respects Weird Gloop API guidelines
+
+---
+
+### Core Components
+
+#### 1. price_history.py
+**Purpose**: Database service for GE price history
+
+**Status**: ✅ **ACTIVE**
+
+**Key Features**:
+- SQLite database management
+- Complete price history storage
+- Timestamp-based deduplication
+- Efficient bulk inserts
+- Query methods for historical data
+
+**Database Tables**:
+1. **`price_history_complete`**: All historical price records
+   - 13,796,723 records
+   - UNIQUE constraint on `(item_id, timestamp)`
+   - Indexed for fast queries
+   - Handles both pre-RuneLite (NULL volume) and post-RuneLite (with volume) data
+
+2. **`price_analytics`**: Pre-computed analytics
+   - 4,321 items (one per item)
+   - PRIMARY KEY on `item_id`
+   - All moving averages pre-computed
+   - Price changes, volatility, OHLC, volume metrics
+
+**Main Methods**:
+```python
+record_complete_history(item_id, item_name, price, volume, timestamp)
+bulk_record_complete_history(records)
+get_last_timestamp(item_id)
+has_complete_history(item_id)
+```
+
+---
+
+#### 2. price_analytics.py
+**Purpose**: Compute comprehensive analytics for GE items
+
+**Status**: ✅ **ACTIVE**
+
+**Key Features**:
+- Flexible moving average periods (configurable)
+- Price change analysis (1d, 7d, 30d)
+- Volatility calculation (standard deviation)
+- OHLC computation per day
+- Volume metrics (24h totals/averages)
+- Efficient batch computation
+
+**Main Methods**:
+```python
+compute_moving_average(item_id, period_days)
+compute_multiple_moving_averages(item_id, periods)
+compute_price_changes(item_id)
+compute_volatility(item_id, period_days)
+compute_ohlc(item_id)
+compute_comprehensive_analytics(item_id, item_name, ma_periods)
+store_analytics(analytics)
+```
+
+**Default MA Periods**: `[7, 14, 30, 50, 100, 200]`
+
+---
+
+#### 3. config.py
+**Purpose**: Centralized API configuration
+
+**Status**: ✅ **ACTIVE**
+
+**Key Settings**:
+```python
+USER_AGENT = "OSRS-AI-RAG-System/1.0 (brandoninkel@gmail.com) Python/requests"
+PRICES_API_BASE = "https://prices.runescape.wiki/api/v1/osrs"
+PRICES_API_RATE_LIMIT = 10  # requests per second
+
+GE_ENDPOINTS = {
+    "latest": f"{PRICES_API_BASE}/latest",
+    "mapping": f"{PRICES_API_BASE}/mapping",
+    "5m": f"{PRICES_API_BASE}/5m",
+    "1h": f"{PRICES_API_BASE}/1h",
+    "timeseries": f"{PRICES_API_BASE}/timeseries"
+}
+```
+
+---
+
+### Scripts
+
+#### 1. ge_update_daemon.py
+**Purpose**: Automated GE price history system with database verification and real-time updates
+
+**Location**: `scripts/ge_update_daemon.py`
+
+**What It Does**:
+- Verifies database schema on startup
+- Repairs automatically by recomputing missing/incomplete analytics
+- Runs incremental updates every 5 minutes
+- Updates analytics for changed items
+- Comprehensive logging to `api/logs/`
+- Graceful shutdown with Ctrl+C
+
+**Usage**:
+```bash
+python3 scripts/ge_update_daemon.py
+```
+
+**Configuration**:
+```python
+UPDATE_INTERVAL = 300  # 5 minutes
+COMPUTE_ANALYTICS = True
+MA_PERIODS = [7, 14, 30, 50, 100, 200]
+```
+
+---
+
+#### 2. seed_complete_ge_history.py
+**Purpose**: Initial seed of complete GE historical data
+
+**Location**: `scripts/seed_complete_ge_history.py`
+
+**What It Does**:
+- Fetches all 4,307 items from `/mapping` endpoint
+- Fetches complete history for each item (back to March 2015)
+- Inserts ~13.8M historical price records
+- Computes analytics for all items
+- Shows progress with ETA
+
+**Usage**:
+```bash
+python3 scripts/seed_complete_ge_history.py
+```
+
+**Performance**:
+- Full run: ~40 minutes
+- Memory: ~500MB RAM
+- Network: ~1.5GB downloaded
+- Disk: ~2.1GB database
+
+---
+
+### Database Schema
+
+#### price_history_complete
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INTEGER PRIMARY KEY | Auto-increment |
+| item_id | INTEGER | OSRS item ID |
+| item_name | TEXT | Item name |
+| price | INTEGER | Price in GP |
+| volume | INTEGER | Trading volume (NULL for pre-2020) |
+| timestamp | INTEGER | Unix timestamp (milliseconds) |
+| data_source | TEXT | 'jagex' or 'runelite' |
+| has_volume | INTEGER | Boolean flag |
+| created_at | TEXT | Record creation timestamp |
+
+**Indexes**:
+- `idx_complete_item_time` on `(item_id, timestamp DESC)`
+- `idx_complete_timestamp` on `(timestamp DESC)`
+- `idx_complete_volume` on `(volume)`
+
+**Constraints**:
+- `UNIQUE(item_id, timestamp)` - Prevents duplicates
+
+---
+
+#### price_analytics
+
+| Column | Type | Description |
+|--------|------|-------------|
+| item_id | INTEGER PRIMARY KEY | OSRS item ID |
+| item_name | TEXT | Item name |
+| current_price | INTEGER | Latest price |
+| price_change_1d | INTEGER | 1-day price change |
+| price_change_1d_pct | REAL | 1-day % change |
+| price_change_7d | INTEGER | 7-day price change |
+| price_change_7d_pct | REAL | 7-day % change |
+| price_change_30d | INTEGER | 30-day price change |
+| price_change_30d_pct | REAL | 30-day % change |
+| volatility_7d | REAL | 7-day volatility |
+| volatility_30d | REAL | 30-day volatility |
+| ma_7d | REAL | 7-day moving average |
+| ma_14d | REAL | 14-day moving average |
+| ma_30d | REAL | 30-day moving average |
+| ma_50d | REAL | 50-day moving average |
+| ma_100d | REAL | 100-day moving average |
+| ma_200d | REAL | 200-day moving average |
+| avg_volume_24h | INTEGER | 24h average volume |
+| total_volume_24h | INTEGER | 24h total volume |
+| open_price | INTEGER | Daily open price |
+| high_price | INTEGER | Daily high price |
+| low_price | INTEGER | Daily low price |
+| close_price | INTEGER | Daily close price |
+| last_updated | TEXT | Last update timestamp |
+
+**Indexes**:
+- `idx_analytics_item` on `(item_id)`
+
+---
+
+### API Compliance
+
+The GE system respects Weird Gloop API guidelines:
+
+**User-Agent**: Proper identification with contact info
+```
+OSRS-AI-RAG-System/1.0 (brandoninkel@gmail.com) Python/requests
+```
+
+**Rate Limiting**: Conservative 10 requests/second
+- 1-second sleep between batches of 10 requests
+- Well below API limits
+
+**Bulk Endpoints**: Uses `/latest` and `/mapping` for efficiency
+- `/latest` fetches ALL items in ONE call
+- `/mapping` fetches ALL item metadata in ONE call
+
+**"Be Respectful"**:
+- Incremental updates only fetch new data
+- Timestamp checking prevents duplicate fetches
+- Daemon runs every 5 minutes (not continuously)
+
+---
+
+### Documentation
+
+For complete documentation, see:
+- **`docs/GE_SYSTEM_COMPLETE.md`** - Complete system documentation
+- **`docs/API_COMPLIANCE.md`** - API compliance verification
+- **`docs/COMPLETE_GE_SEED_GUIDE.md`** - Seed guide
+- **`docs/GE_API_COMPLETE_RESEARCH.md`** - API research
+
+---
+
 ## Data Files
 
 ### Required Files (Must Exist)
 
-#### 1. osrs_embeddings.jsonl (844MB)
+#### 1. price_history.db (2.1GB)
+**Purpose**: Complete GE price history database
+
+**Status**: ⚠️ **NOT IN GIT** (too large - see `.gitignore`)
+
+**Format**: SQLite3 database
+
+**Tables**:
+- `price_history_complete` - 13.8M historical price records
+- `price_analytics` - Pre-computed analytics for 4,321 items
+
+**Generation**:
+- Initial: `python3 scripts/seed_complete_ge_history.py` (~40 minutes)
+- Updates: `python3 scripts/ge_update_daemon.py` (continuous)
+
+**Usage**:
+- Queried by price analytics service
+- Updated every 5 minutes by daemon
+- Auto-repairs on startup if corrupted
+
+**Data Coverage**:
+- Date range: 2015-02-26 to present
+- 4,321 items with complete history
+- 99.4% with all moving averages (7d-200d)
+
+---
+
+#### 2. osrs_embeddings.jsonl (844MB)
 **Purpose**: Semantic embeddings for all wiki pages
 
 **Format**:

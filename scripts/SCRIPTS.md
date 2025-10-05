@@ -4,11 +4,12 @@
 1. [Overview](#overview)
 2. [Directory Structure](#directory-structure)
 3. [Core Scripts](#core-scripts)
-4. [Knowledge Graph Scripts](#knowledge-graph-scripts)
-5. [Command Files](#command-files)
-6. [Data Files Interaction](#data-files-interaction)
-7. [Usage Guide](#usage-guide)
-8. [Maintenance](#maintenance)
+4. [GE Price History Scripts](#ge-price-history-scripts)
+5. [Knowledge Graph Scripts](#knowledge-graph-scripts)
+6. [Command Files](#command-files)
+7. [Data Files Interaction](#data-files-interaction)
+8. [Usage Guide](#usage-guide)
+9. [Maintenance](#maintenance)
 
 ---
 
@@ -19,6 +20,7 @@ The `scripts/` directory contains data processing and maintenance scripts for th
 - **Wiki Content Processing**: Fetching and parsing OSRS wiki pages
 - **Embedding Generation**: Creating semantic embeddings for wiki content
 - **Knowledge Graph**: Building and maintaining the OSRS knowledge graph
+- **GE Price History**: Complete historical price data with analytics
 - **Data Maintenance**: Updating, validating, and optimizing data files
 
 **Key Principle**: Scripts are run manually or via cron jobs. The API server does NOT depend on these scripts at runtime.
@@ -31,7 +33,10 @@ The `scripts/` directory contains data processing and maintenance scripts for th
 scripts/
 ├── create_osrs_embeddings.py          # Generate wiki embeddings
 ├── streamlined-watchdog.js            # Monitor wiki for changes
-├── populate_price_history.py          # Populate price history database
+├── ge_update_daemon.py                # GE price history daemon (auto-repair + updates)
+├── seed_complete_ge_history.py        # Initial GE data seed
+├── fix_analytics_schema.py            # GE database schema migration
+├── seed-complete-ge-history.command   # macOS launcher for seed
 ├── knowledge-graph.command            # Build knowledge graph
 ├── train-kg-embeddings.command        # Train KG embeddings
 ├── eval-kg-embeddings.command         # Evaluate KG embeddings
@@ -45,6 +50,12 @@ scripts/
 │   ├── eval_kg_embeddings.py          # Evaluate KG quality
 │   └── old/                           # Archived KG scripts
 └── old/                               # Archived scripts
+    ├── ge_system/                     # Archived GE scripts
+    │   ├── ge_update_daemon.py        # Old daemon (no auto-repair)
+    │   ├── incremental_ge_update.py   # One-shot update script
+    │   ├── populate_price_history.py  # Old population script
+    │   ├── seed_ge_prices.py          # Old seed script
+    │   └── ...                        # Other archived GE files
     ├── orchestrator.py                # Old orchestration system
     ├── test_*.py                      # Test scripts
     └── ...                            # Other archived files
@@ -147,51 +158,189 @@ The script automatically detects which pages need embedding by:
 
 ---
 
-### 3. populate_price_history.py
-**Purpose**: Populate price history database with historical data
+---
+
+## GE Price History Scripts
+
+### 1. ge_update_daemon.py
+**Purpose**: Automated GE price history system with database verification and real-time updates
 
 **What It Does**:
-- Fetches current prices for popular OSRS items
-- Populates the price_history.db SQLite database
-- Useful for initializing the Economic Dashboard with data
-- Can be run periodically to build historical data
+- **Verifies database schema** on startup and detects issues
+- **Repairs automatically** by recomputing missing/incomplete analytics
+- **Runs incremental updates** every 5 minutes
+- **Updates analytics** for changed items
+- **Comprehensive logging** to `api/logs/`
+- **Graceful shutdown** with Ctrl+C
 
 **Data Files**:
-- **Reads**: None (fetches from OSRS Wiki API)
+- **Reads**: None (fetches from Weird Gloop Prices API)
 - **Writes**:
-  - `data/price_history.db` (SQLite) - Price history database
+  - `data/price_history.db` (2.1GB) - Complete price history database
+  - `api/logs/ge_daemon_YYYYMMDD.log` - Daily log file
+
+**Database Contents**:
+- **13.8 million historical price records** from 2015-present
+- **4,321 items** with complete price history
+- **Pre-computed analytics**: Moving averages (7d, 14d, 30d, 50d, 100d, 200d)
+- **Price changes**: 1d, 7d, 30d with percentages
+- **Volatility metrics**: 7d, 30d
+- **OHLC data**: Open, High, Low, Close
+- **Volume metrics**: 24h totals and averages
 
 **Usage**:
 ```bash
 cd /Users/brandon/Documents/projects/GE/scripts
-python3 populate_price_history.py
+python3 ge_update_daemon.py
 ```
 
-**Options**:
-- `--items` - Comma-separated list of items to fetch (default: popular items)
-- `--count N` - Number of items to fetch (default: 50)
+**Configuration** (edit script):
+```python
+UPDATE_INTERVAL = 300  # 5 minutes
+COMPUTE_ANALYTICS = True
+MA_PERIODS = [7, 14, 30, 50, 100, 200]
+```
 
 **When to Run**:
-- After setting up the system for the first time
-- To build historical data for the Economic Dashboard
-- Periodically (e.g., daily) to track price trends
+- **Always**: Keep running for continuous updates
+- **After system restart**: Automatically verifies and repairs database
+- **After database corruption**: Auto-repairs on startup
 
 **Performance**:
-- Full run: ~5-10 minutes (50 items)
-- Memory: ~100MB RAM
-- Requires: API server running
+- Startup verification: ~10 seconds
+- Auto-repair (if needed): ~20 minutes (4,321 items)
+- Incremental update: ~15 seconds (every 5 minutes)
+- Memory: ~200MB RAM
 
-**Example**:
+**Stopping**:
+- Press `Ctrl+C` (finishes current update before exiting)
+
+---
+
+### 2. seed_complete_ge_history.py
+**Purpose**: Initial seed of complete GE historical data
+
+**What It Does**:
+- Fetches all 4,307 items from `/mapping` endpoint
+- Fetches complete history for each item (back to March 2015)
+- Inserts ~13.8M historical price records
+- Computes analytics for all items
+- Shows progress with ETA
+
+**Data Files**:
+- **Reads**: None (fetches from Weird Gloop Prices API)
+- **Writes**:
+  - `data/price_history.db` (2.1GB) - Complete database
+  - `api/logs/ge_seed_YYYYMMDD_HHMMSS.log` - Seed log
+
+**Usage**:
 ```bash
-# Populate with default popular items
-python3 populate_price_history.py
-
-# Populate specific items
-python3 populate_price_history.py --items "Abyssal whip,Dragon scimitar,Bandos chestplate"
-
-# Populate top 100 items
-python3 populate_price_history.py --count 100
+cd /Users/brandon/Documents/projects/GE/scripts
+python3 seed_complete_ge_history.py
 ```
+
+**Configuration** (edit script):
+```python
+CONCURRENT_REQUESTS = 10  # Requests per second
+BATCH_SIZE = 1000         # Records per insert
+SKIP_EXISTING = True      # Skip items with data
+COMPUTE_ANALYTICS = True  # Compute analytics after seed
+MA_PERIODS = [7, 14, 30, 50, 100, 200]
+```
+
+**When to Run**:
+- **First time setup**: Initialize database
+- **After database deletion**: Rebuild from scratch
+- **Never needed otherwise**: Daemon handles updates
+
+**Performance**:
+- Full run: ~40 minutes
+- Memory: ~500MB RAM
+- Network: ~1.5GB downloaded
+- Disk: ~2.1GB database
+
+**API Compliance**:
+- Proper User-Agent with contact info
+- Conservative rate limiting (10 req/sec)
+- 1-second sleep between batches
+- Respects "be respectful" guideline
+
+---
+
+### 3. fix_analytics_schema.py
+**Purpose**: Database schema migration tool
+
+**What It Does**:
+- Fixes analytics table schema
+- Removes duplicate entries
+- Adds missing MA columns (14d, 50d, 100d, 200d)
+- Migrates data to new structure
+- Creates proper indexes
+
+**Data Files**:
+- **Reads/Writes**: `data/price_history.db`
+
+**Usage**:
+```bash
+cd /Users/brandon/Documents/projects/GE/scripts
+python3 fix_analytics_schema.py
+```
+
+**When to Run**:
+- **Automatically**: Daemon runs this if schema issues detected
+- **Manually**: Only if daemon fails to auto-repair
+- **Never needed normally**: Daemon handles it
+
+**Performance**:
+- Full run: ~30 seconds
+- Memory: ~100MB RAM
+
+---
+
+### GE System Architecture
+
+**Database Tables**:
+1. **`price_history_complete`**: All historical price records
+   - 13,796,723 records
+   - UNIQUE constraint on `(item_id, timestamp)`
+   - Indexed for fast queries
+
+2. **`price_analytics`**: Pre-computed analytics
+   - 4,321 items (one per item)
+   - PRIMARY KEY on `item_id`
+   - All moving averages pre-computed
+
+**Data Flow**:
+```
+Weird Gloop API → Daemon → price_history_complete → Analytics Computation → price_analytics
+                     ↓
+                  Logging
+```
+
+**Update Cycle** (every 5 minutes):
+1. Fetch latest prices from `/latest` endpoint (ONE API call)
+2. Check timestamps to identify new data
+3. Insert new records into `price_history_complete`
+4. Recompute analytics for changed items
+5. Update `price_analytics` table
+6. Log results
+
+**Auto-Repair on Startup**:
+1. Verify database schema
+2. Check for missing/incomplete analytics
+3. Recompute any missing analytics
+4. Fix schema issues if detected
+5. Log all actions
+
+---
+
+### GE System Documentation
+
+For complete documentation, see:
+- **`docs/GE_SYSTEM_COMPLETE.md`** - Complete system documentation
+- **`docs/API_COMPLIANCE.md`** - API compliance verification
+- **`docs/COMPLETE_GE_SEED_GUIDE.md`** - Seed guide
+- **`docs/GE_API_COMPLETE_RESEARCH.md`** - API research
 
 ---
 
