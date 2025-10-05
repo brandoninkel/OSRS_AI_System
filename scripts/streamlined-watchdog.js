@@ -589,11 +589,21 @@ class StreamlinedOSRSWatchdog {
   }
 
   async getRecentChanges() {
+    /**
+     * Fetch recent changes with continuation support.
+     * MediaWiki API limits to 500 results per request, so we need to
+     * continue fetching if there are more changes.
+     */
     const lastCheck = this.metadata?.lastUpdate || (Date.now() - 10 * 60 * 1000);
     const since = new Date(lastCheck).toISOString();
 
-    const response = await axios.get(this.wikiApiUrl, {
-      params: {
+    let allChanges = [];
+    let continueToken = null;
+    let batchCount = 0;
+    const maxBatches = 10; // Safety limit: max 5000 changes (10 * 500)
+
+    do {
+      const params = {
         action: 'query',
         list: 'recentchanges',
         rcstart: new Date().toISOString(),
@@ -603,12 +613,45 @@ class StreamlinedOSRSWatchdog {
         rcprop: 'title|timestamp',
         rclimit: 500,
         format: 'json'
-      },
-      headers: { 'User-Agent': this.userAgent },
-      timeout: 30000
-    });
+      };
 
-    return response.data.query?.recentchanges || [];
+      // Add continuation token if we have one
+      if (continueToken) {
+        params.rccontinue = continueToken;
+      }
+
+      const response = await axios.get(this.wikiApiUrl, {
+        params,
+        headers: { 'User-Agent': this.userAgent },
+        timeout: 30000
+      });
+
+      const changes = response.data.query?.recentchanges || [];
+      allChanges = allChanges.concat(changes);
+
+      // Check for continuation
+      continueToken = response.data.continue?.rccontinue;
+      batchCount++;
+
+      // Log progress if fetching multiple batches
+      if (continueToken && batchCount < maxBatches) {
+        console.log(chalk.gray(`   📡 Fetched ${allChanges.length} changes, continuing...`));
+        await this.sleep(100); // Small delay between requests
+      }
+
+      // Safety check: don't fetch forever
+      if (batchCount >= maxBatches) {
+        console.log(chalk.yellow(`   ⚠️  Reached max batches (${maxBatches}), stopping at ${allChanges.length} changes`));
+        break;
+      }
+
+    } while (continueToken);
+
+    if (batchCount > 1) {
+      console.log(chalk.green(`   ✅ Fetched ${allChanges.length} total changes across ${batchCount} batches`));
+    }
+
+    return allChanges;
   }
 
   async fetchPageContent(title) {
