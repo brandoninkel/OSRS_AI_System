@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-10-05T01:53:28.810833",
+  "tests": [
+    {
+      "name": "GUI Loads",
+      "status": "FAILED",
+      "details": {
+        "reason": "Missing required elements",
+        "has_input": false,
+        "has_send_button": true
+      }
+    },
+    {
+      "name": "Simple Query",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"textarea, input[type=\\\"text\\\"]\").first\n"
+      }
+    },
+    {
+      "name": "Price Query",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"textarea, input[type=\\\"text\\\"]\").first\n"
+      }
+    },
+    {
+      "name": "Economic Hypothesis",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"textarea, input[type=\\\"text\\\"]\").first\n"
+      }
+    },
+    {
+      "name": "Attribution System",
+      "status": "SKIPPED",
+      "details": {
+        "reason": "Manual testing required"
+      }
+    },
+    {
+      "name": "Barrows Brothers Query",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"textarea, input[type=\\\"text\\\"]\").first\n"
+      }
+    },
+    {
+      "name": "Charged Item Price",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"textarea, input[type=\\\"text\\\"]\").first\n"
+      }
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 0,
+    "failed": 6,
+    "warnings": []
+  },
+  "console_logs": {
+    "total": 4,
+    "errors": 1,
+    "warnings": 0
+  }
+}

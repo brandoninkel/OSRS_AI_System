@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-10-05T01:56:22.950300",
+  "tests": [
+    {
+      "name": "GUI Loads",
+      "status": "PASSED",
+      "details": {
+        "load_time": "0.64s",
+        "title": "OSRS AI Assistant",
+        "has_input": true,
+        "has_send_button": true
+      }
+    },
+    {
+      "name": "Simple Query",
+      "status": "WARNING",
+      "details": {
+        "reason": "Response may be incomplete",
+        "has_number": true,
+        "has_sources": false
+      }
+    },
+    {
+      "name": "Price Query",
+      "status": "WARNING",
+      "details": {
+        "reason": "Response may not contain price data",
+        "has_price": false,
+        "has_number": true
+      }
+    },
+    {
+      "name": "Economic Hypothesis",
+      "status": "PASSED",
+      "details": {
+        "query": "Is it profitable to kill Vorkath?",
+        "response_length": 488,
+        "has_multiple_prices": true,
+        "response_time": 11.786188125610352
+      }
+    },
+    {
+      "name": "Attribution System",
+      "status": "SKIPPED",
+      "details": {
+        "reason": "Manual testing required"
+      }
+    },
+    {
+      "name": "Barrows Brothers Query",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"textbox\")\n    - locator resolved to <input value=\"\" disabled placeholder=\"Ask me anything about OSRS\u2026\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1\"/>\n    - fill(\"What are each of the Barrows brothers' abilities?\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not enabled\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not enabled\n    - retrying fill action\n      - waiting 100ms\n    60 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not enabled\n     - retrying fill action\n       - waiting 500ms\n"
+      }
+    },
+    {
+      "name": "Charged Item Price",
+      "status": "FAILED",
+      "details": {
+        "success": false,
+        "error": "Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"textbox\")\n    - locator resolved to <input value=\"\" disabled placeholder=\"Ask me anything about OSRS\u2026\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1\"/>\n    - fill(\"How much is a trident of the seas?\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not enabled\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not enabled\n    - retrying fill action\n      - waiting 100ms\n    60 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not enabled\n     - retrying fill action\n       - waiting 500ms\n"
+      }
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 2,
+    "failed": 2,
+    "warnings": [
+      "Simple Query",
+      "Price Query"
+    ]
+  },
+  "console_logs": {
+    "total": 4,
+    "errors": 1,
+    "warnings": 0
+  }
+}

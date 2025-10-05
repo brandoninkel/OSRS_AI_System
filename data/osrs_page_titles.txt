@@ -2233,6 +2233,7 @@ Attack 3
 Attack 4
 Attack 5
 Attack 6
+Attack Level Up!
 Attack cape
 Attack dolmen
 Attack hood
@@ -2639,10 +2640,12 @@ Bank booth
 Bank buffalo
 Bank chest
 Bank chest (Chambers of Xeric)
+Bank chest (The Great Conch)
 Bank chest (Void Knight Outpost)
 Bank chest (amenity)
 Bank chest space
 Bank counter
+Bank crate
 Bank filler
 Bank guard
 Bank key
@@ -2822,6 +2825,7 @@ Barracuda Headquarters
 Barracuda Trials
 Barracuda boat
 Barracuda salvage
+Barracuda shipwreck
 Barracuda trial exit
 Barracuda's Bounty
 Barracudas
@@ -5620,6 +5624,7 @@ Cave (Morytania Spider Cave)
 Cave (Myths' Guild)
 Cave (Shadows of Custodia)
 Cave (Stalker Den)
+Cave (The Crown Jewel)
 Cave (The Hollows)
 Cave (The Stranglewood)
 Cave (Ungael)
@@ -5670,6 +5675,8 @@ Cave entrance (Rantz's cave)
 Cave entrance (Sailing)
 Cave entrance (Scrubfoot's cave)
 Cave entrance (Skavid caves)
+Cave entrance (The Great Conch, cliff)
+Cave entrance (The Great Conch, underwater)
 Cave entrance (The Hollows)
 Cave entrance (The Hueycoatl)
 Cave entrance (The Kendal's Lair)
@@ -5684,10 +5691,12 @@ Cave entrance (from Ivandis Tomb)
 Cave entrance (from Ogre Enclave)
 Cave entrance (from Shaman Caves)
 Cave entrance (from TzHaar Fight Caves)
+Cave entrance (gryphon)
 Cave entrance (south-east Wilderness)
 Cave entrance (to Mor Ul Rek)
 Cave entrance (to Ogre Enclave)
 Cave entrance (to TzHaar Fight Caves)
+Cave exit (Grimstone)
 Cave exit (Ice Path)
 Cave exit (Karuulm Slayer Dungeon)
 Cave exit (Mor Ul Rek)
@@ -5701,6 +5710,7 @@ Cave exit (Underground Pass to Ardougne)
 Cave exit (Underground Pass to Tirannwn)
 Cave exit (Water Ravine Dungeon)
 Cave exit (Weiss cave)
+Cave exit (gryphon)
 Cave gobins
 Cave goblin
 Cave goblin (Dorgesh-Kaan)
@@ -7491,6 +7501,7 @@ Colossal blade
 Colossal pouch
 Colossal pouch (Devious Minds)
 Colossal salvage
+Colossal shipwreck
 Colossal wyrm teleport scroll
 Colosseum Announcer
 Colosseum Grand Champion
@@ -7752,6 +7763,7 @@ Cooked turkey
 Cooked wild kebbit
 Cooker
 Cooking
+Cooking Level Up!
 Cooking Pots
 Cooking Pots (Song of the Elves)
 Cooking apple
@@ -8051,6 +8063,7 @@ Craft stall
 Crafting
 Crafting Guild
 Crafting Guild mine
+Crafting Level Up!
 Crafting Xerician robes
 Crafting air runes (high level)
 Crafting blood runes
@@ -9338,6 +9351,7 @@ Deerstalker
 Defence
 Defence Doesn't Matter
 Defence Doesn't Matter II
+Defence Level Up!
 Defence Matters
 Defence cape
 Defence dolmen
@@ -9819,6 +9833,7 @@ Door (Castle Wars)
 Door (Chaos Druid Tower)
 Door (Defender of Varrock)
 Door (H.A.M. Hideout Jail)
+Door (Last Light)
 Door (Magic axe hut)
 Door (McGrubor's Wood)
 Door (Nulodion)
@@ -12432,6 +12447,7 @@ Fremennik sea boots 3
 Fremennik sea boots 4
 Fremennik series
 Fremennik shield
+Fremennik shipwreck
 Fremennik shirt
 Fremennik skirt
 Fremennik sonar orb
@@ -14199,6 +14215,7 @@ Guide:B0aty HCIM Guide V3
 Guide:BRUHsailer
 Guide:Bearcord - Callisto Setup options for Small Team/Masses
 Guide:Bearcord - Venenatis Setup options for Small Team/Masses
+Guide:Bossing Ladder
 Guide:Clue Juggling
 Guide:Clue Tags
 Guide:Collecting monkey corpses
@@ -14651,6 +14668,7 @@ Haunted Mine (music track)
 Haunted Mine/Quick guide
 Haunted Tree
 Haunted Woods
+Haunted shipwreck
 Haunted wine bottle
 Have a Blast
 Have an Ice Day
@@ -15214,6 +15232,7 @@ Hunter's spear
 Hunter/Experience table
 Hunter/Level up table
 Hunters' Rumours
+Hunters' Rumours/Strategies
 Hunters' crossbow
 Hunters' loot sack
 Hunters' loot sack (adept)
@@ -17097,6 +17116,7 @@ Large rosewood hull part
 Large rune keel parts
 Large salvage
 Large sewer pipe
+Large shipwreck
 Large snowball
 Large spade
 Large stalagmite
@@ -17465,6 +17485,7 @@ Lighthouse
 Lighthouse (music track)
 Lighthouse key
 Lighting mechanism
+Lighting mechanism (Last Light)
 Lighting space
 Lightness
 Lightning Lure
@@ -18863,8 +18884,10 @@ Mercenary (Theatre of Blood)
 Mercenary Captain
 Mercenary axeman
 Mercenary mage
+Mercenary shipwreck
 Merchant (disambiguation)
 Merchant ship
+Merchant shipwreck
 Merchanting
 Mercy
 Meredith
@@ -19762,6 +19785,7 @@ Money making guide/Killing Zalcano
 Money making guide/Killing Zamorak monks
 Money making guide/Killing Zulrah
 Money making guide/Killing Zulrah (max efficiency)
+Money making guide/Killing adamant dragons
 Money making guide/Killing ankous
 Money making guide/Killing aviansie
 Money making guide/Killing bears
@@ -20300,7 +20324,9 @@ Mounted
 Mounted Alchemical Hydra head (interface item)
 Mounted Head (Getting Ahead)
 Mounted Head Space (Getting Ahead)
+Mounted Sailing Cape
 Mounted Vorkath head (interface item)
+Mounted amulet
 Mounted bass
 Mounted bluefin tuna
 Mounted coins
@@ -20759,6 +20785,7 @@ Nerve Ending (Fire)
 Nerve Ending (Mind)
 Nerve Ending (Water)
 Nest
+Nest (gryphon)
 Nest (nice)
 Nest box
 Nest box (seeds, 2014-2016)
@@ -23275,6 +23302,7 @@ Rada's blessing 4
 Rada's census
 Rada's journey
 Radat
+Radiant
 Radiant Vein
 Radiant fibre
 Radiant oathplate armour
@@ -24433,6 +24461,7 @@ Rocks (Trollheim easy)
 Rocks (Trollheim hard)
 Rocks (Trollheim medium)
 Rocks (Trollheim very easy)
+Rocks (Vardorvis)
 Rocks (Viyeldi caves)
 Rocks (Waterbirth Island)
 Rocks (Wilderness Agility Course)
@@ -27924,6 +27953,7 @@ Stair Space
 Staircase
 Staircase (Jatizso)
 Staircase (Kourend Woodland)
+Staircase (Last Light)
 Staircase (Lumbridge Castle)
 Staircase (The Great Conch)
 Staircase (stealing valuables)
@@ -32338,6 +32368,7 @@ Wall Pipe
 Wall beast
 Wall chart
 Wall chart space
+Wall climb (Grimstone)
 Wall corner
 Wall map
 Wall of flame

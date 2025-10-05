@@ -319,6 +319,7 @@ Mining iron and superheating Iron bars
 Mining iron ore (free-to-play)
 Mining runite ore (free-to-play)
 Money making guide/Killing Drakes
+Money making guide/Killing basilisk knights (Slayer)
 Opening eclectic impling jars
 Opening essence impling jars
 Opening grubby chests
@@ -337,6 +338,7 @@ Planting Celastrus sapling
 Planting Crystal acorn
 Planting flower seeds
 Poisoning ammunition
+Raging echos dragon trophy
 Recharging rings of wealth
 Red crab (Hunter creature)
 RuneScape:Battleaxes and Ballads
