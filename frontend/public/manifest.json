@@ -1,0 +1,19 @@
+{
+  "name": "OSRS AI Assistant",
+  "short_name": "OSRS AI",
+  "description": "Old School RuneScape AI Assistant with RAG",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
