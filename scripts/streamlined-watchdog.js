@@ -390,15 +390,22 @@ class StreamlinedOSRSWatchdog {
   async startCompletionBasedMonitoring() {
     console.log(chalk.green('\n👁️  Starting completion-based orchestration...'));
     console.log(chalk.gray('Each cycle waits for embedding systems to complete'));
+    console.log(chalk.gray('GE updates run independently every 5 minutes'));
     console.log(chalk.gray('Press Ctrl+C to stop'));
 
     this.isRunning = true;
     let isFirstCycle = true;
 
+    // Start independent GE update timer (every 5 minutes)
+    this.startGEUpdateTimer();
+
     // Graceful shutdown handler
     process.on('SIGINT', () => {
       console.log(chalk.yellow('\n🛑 Shutting down gracefully...'));
       this.isRunning = false;
+      if (this.geUpdateTimer) {
+        clearInterval(this.geUpdateTimer);
+      }
       process.exit(0);
     });
 
@@ -431,23 +438,8 @@ class StreamlinedOSRSWatchdog {
           isFirstCycle = false;
         }
 
-        // Update GE prices (respecting 5-minute minimum interval)
-        const timeSinceLastGE = Date.now() - this.lastGEUpdate;
-        const minutesSinceLastGE = Math.floor(timeSinceLastGE / 60000);
-
-        if (timeSinceLastGE >= this.geUpdateInterval) {
-          console.log(chalk.yellow(`\n💰 Updating GE prices (${minutesSinceLastGE} minutes since last update)...`));
-          const geSuccess = await this.updateGEPrices();
-          if (geSuccess) {
-            this.lastGEUpdate = Date.now();
-            console.log(chalk.green('✅ GE prices updated successfully'));
-          } else {
-            console.log(chalk.yellow('⚠️  GE price update had issues (check logs)'));
-          }
-        } else {
-          const minutesRemaining = Math.ceil((this.geUpdateInterval - timeSinceLastGE) / 60000);
-          console.log(chalk.gray(`\n💰 Skipping GE update (last update ${minutesSinceLastGE} min ago, next in ${minutesRemaining} min)`));
-        }
+        // GE updates now run on independent 5-minute timer (see startGEUpdateTimer)
+        // No need to update here - it happens automatically in the background
 
         if (hasChanges) {
           console.log(chalk.yellow(`\n🚀 Changes detected: ${this.stats.pagesAdded} added, ${this.stats.pagesUpdated} updated`));
@@ -2090,8 +2082,38 @@ print(processed)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // GE PRICE UPDATES (INTEGRATED)
+  // GE PRICE UPDATES (INDEPENDENT 5-MINUTE TIMER)
   // ═══════════════════════════════════════════════════════════════════════════════
+
+  startGEUpdateTimer() {
+    /**
+     * Start independent GE update timer that runs every 5 minutes.
+     * This runs in parallel with the watchdog cycle, ensuring GE updates
+     * happen at proper 5-minute intervals regardless of watchdog timing.
+     */
+    console.log(chalk.blue('💰 Starting independent GE update timer (every 5 minutes)...'));
+
+    // Run first update immediately
+    this.updateGEPrices().then(() => {
+      console.log(chalk.green('   ✅ Initial GE update complete'));
+    }).catch(err => {
+      console.error(chalk.red(`   ❌ Initial GE update failed: ${err.message}`));
+    });
+
+    // Then run every 5 minutes
+    this.geUpdateTimer = setInterval(async () => {
+      try {
+        const now = new Date().toLocaleTimeString();
+        console.log(chalk.yellow(`\n💰 [${now}] Running scheduled GE update...`));
+        await this.updateGEPrices();
+        console.log(chalk.green(`   ✅ GE update complete`));
+      } catch (error) {
+        console.error(chalk.red(`   ❌ GE update error: ${error.message}`));
+      }
+    }, this.geUpdateInterval);
+
+    console.log(chalk.green('   ✅ GE update timer started (updates every 5 minutes)'));
+  }
 
   async updateGEPrices() {
     /**
