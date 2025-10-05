@@ -68,6 +68,35 @@ class CitationTool:
     def get_page_content(self, page_title: str) -> Optional[Dict[str, Any]]:
         """Get parsed content for a wiki page"""
         return self.wiki_pages.get(page_title)
+
+    def get_all_page_titles(self) -> List[str]:
+        """Get list of all wiki page titles"""
+        return list(self.wiki_pages.keys())
+
+    def search_page_titles(self, query: str, limit: int = 100) -> List[str]:
+        """
+        Search for wiki pages by title
+
+        Args:
+            query: Search query (case-insensitive)
+            limit: Maximum number of results
+
+        Returns:
+            List of matching page titles
+        """
+        if not query:
+            return []
+
+        query_lower = query.lower()
+        matches = []
+
+        for title in self.wiki_pages.keys():
+            if query_lower in title.lower():
+                matches.append(title)
+                if len(matches) >= limit:
+                    break
+
+        return matches
     
     def find_field_value(self, page_title: str, field_name: str) -> Optional[str]:
         """
@@ -336,3 +365,14 @@ if __name__ == "__main__":
     )
     print(f"   Result: {formatted}")
 
+
+# Global instance
+_citation_tool = None
+
+
+def get_citation_tool() -> CitationTool:
+    """Get or create the global citation tool instance"""
+    global _citation_tool
+    if _citation_tool is None:
+        _citation_tool = CitationTool()
+    return _citation_tool

@@ -463,11 +463,12 @@ def get_item_price(item_name: str) -> str:
         time.sleep(0.1 - time_since_last)
 
     try:
+        # Import config for proper User-Agent
+        from config import get_headers, GE_ENDPOINTS
+
         # First, get the item ID from the mapping
-        mapping_url = "https://prices.runescape.wiki/api/v1/osrs/mapping"
-        headers = {
-            "User-Agent": "OSRS-AI-Assistant/1.0 (brandon@osrs-ai.local) Python/requests"
-        }
+        mapping_url = GE_ENDPOINTS["mapping"]
+        headers = get_headers()
 
         get_item_price._last_request_time = time.time()
         mapping_response = requests.get(mapping_url, headers=headers, timeout=10)
@@ -491,7 +492,7 @@ def get_item_price(item_name: str) -> str:
             })
 
         # Get the latest price for this item
-        price_url = f"https://prices.runescape.wiki/api/v1/osrs/latest?id={item_id}"
+        price_url = f"{GE_ENDPOINTS['latest']}?id={item_id}"
 
         # Respect rate limit
         time_since_last = time.time() - get_item_price._last_request_time

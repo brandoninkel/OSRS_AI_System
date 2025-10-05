@@ -21,7 +21,7 @@ const os = require('os');
 class StreamlinedOSRSWatchdog {
   constructor() {
     this.wikiApiUrl = 'https://oldschool.runescape.wiki/api.php';
-    this.userAgent = 'OSRS-AI-System/1.0 (https://github.com/user/osrs-ai; contact@example.com)';
+    this.userAgent = 'OSRS-AI-RAG-System/1.0 (brandoninkel@gmail.com) Node.js/axios';
 
     // File paths - CONSOLIDATED TRACKING
     this.outputFile = path.join(__dirname, '../data/osrs_wiki_content.jsonl');

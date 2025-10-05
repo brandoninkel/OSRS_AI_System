@@ -19,10 +19,10 @@ class CachedAttributionService:
         self.cache = cache or RevisionCache()
         self.base_url = "https://oldschool.runescape.wiki"
         self.rest_api = f"{self.base_url}/rest.php/v1"
-        self.headers = {
-            "User-Agent": "OSRS-AI-Attribution/1.0 (brandon@osrs-ai.local) Python/requests",
-            "Accept-Encoding": "gzip"
-        }
+
+        # Import proper User-Agent from config
+        from config import get_headers
+        self.headers = get_headers()
         # Wikimedia REST API allows 200 requests/second
         # Use conservative limit of 10 concurrent requests to be respectful
         self.max_concurrent_requests = 10
