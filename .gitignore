@@ -4,7 +4,22 @@
 backup_old_projects/
 old/
 
-# Large data files - use Git LFS for critical files
+# Large data files - TOO LARGE FOR GIT (3GB+)
+# These should be stored locally or in cloud storage, not in git
+data/osrs_embeddings.jsonl
+data/kg_entity_embeddings_mxbai.jsonl
+data/osrs_wiki_content.jsonl
+data/osrs_wikitext_content.jsonl
+data/osrs_kg_triples.csv
+data/osrs_kg_nodes.jsonl
+data/osrs_kg_edges.jsonl
+data/kg_entity_to_pages.json
+data/kg_page_to_entities.json
+data/osrs_template_issues.jsonl
+data/kg_model/entity_embeddings.npy
+data/kg_model/adjacency.npz
+
+# Other large data files
 *.json.gz
 data/cache/
 data/tmp/

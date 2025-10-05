@@ -1,0 +1,13 @@
+{
+  "timestamp": 1759439403.0891771,
+  "pages_scanned": 32677,
+  "total_time": 24.092962980270386,
+  "final_rate": 1356.2881421749182,
+  "peak_workers": 16,
+  "issues_found": {},
+  "summary": {
+    "total_issues": 0,
+    "missing_wikitext": 0,
+    "need_refetch": 0
+  }
+}

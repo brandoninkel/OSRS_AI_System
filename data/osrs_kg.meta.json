@@ -1,0 +1,10 @@
+{
+  "generated_at": 1759439464,
+  "content_src": "/Users/brandon/Documents/projects/GE/data/tmp/osrs_wiki_content.jsonl.snapshot-1759439461.jsonl",
+  "wikitext_src": "/Users/brandon/Documents/projects/GE/data/tmp/osrs_wikitext_content.jsonl.snapshot-1759439461.jsonl",
+  "triples_csv": "/Users/brandon/Documents/projects/GE/data/osrs_kg_triples.csv",
+  "nodes_jsonl": "/Users/brandon/Documents/projects/GE/data/osrs_kg_nodes.jsonl",
+  "edges_jsonl": "/Users/brandon/Documents/projects/GE/data/osrs_kg_edges.jsonl",
+  "pages_processed": 32677,
+  "workers": 8
+}
