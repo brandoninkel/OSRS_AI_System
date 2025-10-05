@@ -71,6 +71,10 @@ class StreamlinedOSRSWatchdog {
     };
     this.lastKgUpdate = Date.now();
 
+    // GE update tracking (ensure 5-minute minimum interval)
+    this.lastGEUpdate = 0;  // Timestamp of last GE update
+    this.geUpdateInterval = 5 * 60 * 1000;  // 5 minutes in milliseconds
+
     // Progress tracking - SINGLE CONSOLIDATED PROGRESS
     this.totalOperations = 0;
     this.completedOperations = 0;
@@ -427,13 +431,22 @@ class StreamlinedOSRSWatchdog {
           isFirstCycle = false;
         }
 
-        // Update GE prices as part of the cycle (always run, not dependent on wiki changes)
-        console.log(chalk.yellow('\n💰 Updating GE prices...'));
-        const geSuccess = await this.updateGEPrices();
-        if (geSuccess) {
-          console.log(chalk.green('✅ GE prices updated successfully'));
+        // Update GE prices (respecting 5-minute minimum interval)
+        const timeSinceLastGE = Date.now() - this.lastGEUpdate;
+        const minutesSinceLastGE = Math.floor(timeSinceLastGE / 60000);
+
+        if (timeSinceLastGE >= this.geUpdateInterval) {
+          console.log(chalk.yellow(`\n💰 Updating GE prices (${minutesSinceLastGE} minutes since last update)...`));
+          const geSuccess = await this.updateGEPrices();
+          if (geSuccess) {
+            this.lastGEUpdate = Date.now();
+            console.log(chalk.green('✅ GE prices updated successfully'));
+          } else {
+            console.log(chalk.yellow('⚠️  GE price update had issues (check logs)'));
+          }
         } else {
-          console.log(chalk.yellow('⚠️  GE price update had issues (check logs)'));
+          const minutesRemaining = Math.ceil((this.geUpdateInterval - timeSinceLastGE) / 60000);
+          console.log(chalk.gray(`\n💰 Skipping GE update (last update ${minutesSinceLastGE} min ago, next in ${minutesRemaining} min)`));
         }
 
         if (hasChanges) {
