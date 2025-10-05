@@ -18,12 +18,16 @@ The Admin GUI provides a professional control panel for managing the OSRS AI sys
 - **Modern Dark Theme**: Professional catppuccin-inspired color scheme
 - **Real-Time Monitoring**: CPU, memory, and disk usage tracking
 - **Process Management**: Start/stop all services with proper cleanup
+- **Shell Script Integration**: Uses system scripts directly (no API calls for security)
+- **Service Status Checking**: Real-time status of all running services
+- **Log File Access**: Quick access to watchdog and API logs
 - **Comprehensive Logging**: Tabbed interface for different log types
 - **Responsive Layout**: Resizable sections with splitter bars
 - **System Tray Integration**: Minimize to system tray
 - **Intelligent Lifecycle**: Automatic cleanup of spawned processes
 
-**Current Version**: PyQt6 Admin GUI (Professional)
+**Current Version**: PyQt6 Admin GUI (Professional v2.0)
+**Security Model**: Direct shell script execution (no API exposure)
 
 ---
 
@@ -76,9 +80,14 @@ admin/
 │                  (pyqt6_admin_gui.py)                        │
 └───────┬─────────────────────────────────────────────────────┘
         │
+        ├─► Shell Script Integration (Security: No API)
+        │   ├─ scripts/start_all_systems.sh
+        │   ├─ scripts/stop_all_systems.sh
+        │   └─ scripts/check_system_status.sh
+        │
         ├─► ProcessManager
-        │   ├─ Start/stop services
-        │   ├─ Track PIDs
+        │   ├─ Track spawned processes
+        │   ├─ Monitor PIDs
         │   └─ Cleanup on exit
         │
         ├─► SystemMonitor (QThread)
@@ -91,10 +100,10 @@ admin/
         │   ├─ System logs
         │   └─ Error logs
         │
-        └─► Command Execution
-            ├─ start-services-only.command
-            ├─ stop-all.command
-            └─ Direct subprocess calls
+        └─► Services Managed
+            ├─ Streamlined Watchdog (wiki + GE updates)
+            ├─ OSRS API Server (Flask + RAG)
+            └─ Frontend GUI (React PWA on port 3005)
 ```
 
 ---
@@ -163,29 +172,32 @@ log_updated = pyqtSignal(str, str)  # (log_type, content)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  OSRS AI Control Center                          [_][□][X]  │
+│  🚀 OSRS AI System Control Center                [_][□][X]  │
 ├─────────────────────────────────────────────────────────────┤
 │  File  Help                                                  │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  System Status                                       │   │
+│  │  📊 System Status                                    │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐            │   │
 │  │  │ CPU: 45% │ │ RAM: 8GB │ │ Disk:50% │            │   │
 │  │  └──────────┘ └──────────┘ └──────────┘            │   │
 │  └─────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  Service Control                                     │   │
-│  │  [Start All Services]  [Stop All Services]          │   │
-│  │  Status: ● Services Running                         │   │
+│  │  🎮 Control Panel                                    │   │
+│  │  [🚀 Start All Services]  [🛑 Stop All Services]    │   │
+│  │  [📊 Check Status] [🌐 Open Frontend]               │   │
+│  │  [📡 Watchdog Log] [🔧 API Log]                     │   │
+│  │  Status: ✅ All services running                    │   │
 │  └─────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  Logs                                                │   │
+│  │  📋 Logs                                             │   │
 │  │  ┌─────────────────────────────────────────────┐    │   │
 │  │  │ [API] [System] [Errors]                     │    │   │
 │  │  ├─────────────────────────────────────────────┤    │   │
-│  │  │ [2025-10-03 14:30:00] API server started   │    │   │
-│  │  │ [2025-10-03 14:30:01] Ollama connected     │    │   │
-│  │  │ [2025-10-03 14:30:02] Ready for requests   │    │   │
+│  │  │ [2025-10-05] 🚀 Starting all services...   │    │   │
+│  │  │ [2025-10-05] ✅ Watchdog started (PID:1234)│    │   │
+│  │  │ [2025-10-05] ✅ API Server started         │    │   │
+│  │  │ [2025-10-05] ✅ Frontend started           │    │   │
 │  │  │                                              │    │   │
 │  │  └─────────────────────────────────────────────┘    │   │
 │  └─────────────────────────────────────────────────────┘   │
@@ -216,10 +228,14 @@ log_updated = pyqtSignal(str, str)  # (log_type, content)
 ### Features
 
 #### 1. Service Control
-- **Start All Services**: Launches Ollama + RAG API
-- **Stop All Services**: Gracefully stops all services
-- **Status Indicator**: Real-time service status
-- **Process Tracking**: Monitors PIDs and health
+- **Start All Services**: Launches all OSRS AI services via shell script
+  - Streamlined Watchdog (wiki monitoring + GE price updates every 5 min)
+  - OSRS API Server (Flask API with RAG on port 5001)
+  - Frontend GUI (React PWA on port 3005)
+- **Stop All Services**: Gracefully stops all services via shell script
+- **Check Status**: Real-time status check of all running services
+- **Status Indicator**: Live status display in GUI
+- **Security**: Uses shell scripts directly (no API exposure for admin functions)
 
 #### 2. System Monitoring
 - **CPU Usage**: Real-time CPU percentage
@@ -316,31 +332,42 @@ python3 pyqt6_admin_gui.py
 
 1. **Launch the GUI**:
    ```bash
+   cd /Users/brandon/Documents/projects/GE/admin
    ./start-pyqt6-gui.command
    ```
 
-2. **Click "Start All Services"**:
-   - Starts Ollama (if not running)
-   - Starts RAG API server
+2. **Click "🚀 Start All Services"**:
+   - Executes `scripts/start_all_systems.sh`
+   - Starts Streamlined Watchdog (wiki monitoring + GE updates)
+   - Starts OSRS API Server (Flask + RAG on port 5001)
+   - Starts Frontend GUI (React PWA on port 3005)
    - Updates status indicator
 
 3. **Monitor System**:
-   - Watch CPU/Memory/Disk usage
+   - Watch CPU/Memory/Disk usage in real-time
    - Check logs in tabbed interface
-   - Verify services are running
+   - Click "📊 Check Status" to verify all services
+
+4. **Access Services**:
+   - Click "🌐 Open Frontend" to open http://localhost:3005
+   - Click "📡 Watchdog Log" to view wiki monitoring logs
+   - Click "🔧 API Log" to view API server logs
 
 ---
 
 ### Stopping Services
 
-1. **Click "Stop All Services"**:
-   - Stops RAG API server
-   - Stops other managed processes
-   - Optionally stops Ollama
+1. **Click "🛑 Stop All Services"**:
+   - Executes `scripts/stop_all_systems.sh`
+   - Stops Frontend GUI
+   - Stops OSRS API Server
+   - Stops Streamlined Watchdog
+   - Updates status indicator
 
 2. **Or Close the GUI**:
    - Automatically stops all managed processes
    - Cleanup handlers ensure no orphans
+   - Safe shutdown with proper cleanup
 
 ---
 
@@ -412,20 +439,30 @@ chmod +x /Users/brandon/Documents/projects/GE/admin/start-pyqt6-gui.command
 
 ### Issue: Services won't start
 
-**Check 1: Verify Ollama is installed**
+**Check 1: Verify shell scripts exist and are executable**
 ```bash
-ollama --version
+ls -lh /Users/brandon/Documents/projects/GE/scripts/start_all_systems.sh
+ls -lh /Users/brandon/Documents/projects/GE/scripts/stop_all_systems.sh
+chmod +x /Users/brandon/Documents/projects/GE/scripts/*.sh
 ```
 
 **Check 2: Verify data files exist**
 ```bash
 ls -lh /Users/brandon/Documents/projects/GE/data/osrs_embeddings.jsonl
-ls -lh /Users/brandon/Documents/projects/GE/data/kg_entity_embeddings_mxbai.jsonl
+ls -lh /Users/brandon/Documents/projects/GE/data/osrs_wiki_content.jsonl
 ```
 
 **Check 3: Check logs**
 ```bash
+tail -f /Users/brandon/Documents/projects/GE/logs/osrs_ai/watchdog.out
 tail -f /Users/brandon/Documents/projects/GE/logs/osrs_ai/api.out
+tail -f /Users/brandon/Documents/projects/GE/logs/osrs_ai/frontend.out
+```
+
+**Check 4: Manually test start script**
+```bash
+cd /Users/brandon/Documents/projects/GE
+bash scripts/start_all_systems.sh
 ```
 
 ---
@@ -598,16 +635,28 @@ psutil>=5.9.0
 
 ### Process Management
 
-**PID Files**:
-- `logs/osrs_ai/api.pid` - RAG API server
-- `logs/osrs_ai/ollama.pid` - Ollama server (if started by GUI)
+**PID Files** (managed by shell scripts):
+- `logs/pids/watchdog.pid` - Streamlined Watchdog
+- `logs/pids/api.pid` - OSRS API Server
+- `logs/pids/frontend.pid` - Frontend GUI
+
+**Shell Scripts**:
+- `scripts/start_all_systems.sh` - Start all services
+- `scripts/stop_all_systems.sh` - Stop all services
+- `scripts/check_system_status.sh` - Check service status
+
+**Security Model**:
+- Admin GUI uses shell scripts directly (no API calls)
+- Prevents API-based manipulation of admin functions
+- Local-only access for system management
+- PID-based process tracking and cleanup
 
 **Cleanup Strategy**:
-1. Register atexit handlers on startup
-2. Track all spawned processes in memory
-3. On exit, kill all tracked processes
-4. Remove PID files
-5. Log cleanup actions
+1. Shell scripts manage PID files
+2. GUI tracks spawned processes in memory
+3. On exit, GUI cleanup handlers run
+4. Shell scripts handle graceful shutdown
+5. All cleanup actions logged
 
 ---
 
@@ -626,7 +675,44 @@ psutil>=5.9.0
 
 ---
 
-**Last Updated**: October 3, 2025
-**Version**: 1.0.0
-**GUI Version**: PyQt6 Professional
+---
+
+## Security Architecture
+
+### Why No API for Admin Functions?
+
+The Admin GUI uses **direct shell script execution** instead of API calls for security:
+
+**Security Benefits**:
+1. **No API Exposure**: Admin functions can't be triggered via HTTP requests
+2. **Local-Only Access**: Only users with filesystem access can manage services
+3. **No Authentication Bypass**: Can't manipulate admin functions through API vulnerabilities
+4. **Process Isolation**: Shell scripts run with proper permissions and isolation
+5. **Audit Trail**: All actions logged locally, not through API logs
+
+**What Uses Shell Scripts**:
+- ✅ Start All Services (`scripts/start_all_systems.sh`)
+- ✅ Stop All Services (`scripts/stop_all_systems.sh`)
+- ✅ Check Status (`scripts/check_system_status.sh`)
+
+**What Uses API** (read-only, safe):
+- Frontend GUI (user-facing features)
+- RAG queries (AI chat)
+- Price data queries (market intelligence)
+
+**Attack Surface Reduction**:
+```
+❌ OLD: API endpoint → Admin function → System control
+   Risk: Anyone with API access can control system
+
+✅ NEW: GUI → Shell script → System control
+   Risk: Only local users with filesystem access
+```
+
+---
+
+**Last Updated**: October 5, 2025
+**Version**: 2.0.0
+**GUI Version**: PyQt6 Professional (Security-Hardened)
+**Security Model**: Direct shell script execution (no API exposure)
 

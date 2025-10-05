@@ -36,6 +36,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LOG_DIR = REPO_ROOT / "logs" / "osrs_ai"
 DATA_DIR = REPO_ROOT / "data"
 SCRIPTS_DIR = REPO_ROOT / "scripts"
+PID_DIR = REPO_ROOT / "logs" / "pids"
+
+# System management scripts (use shell scripts directly, not API)
+START_SCRIPT = SCRIPTS_DIR / "start_all_systems.sh"
+STOP_SCRIPT = SCRIPTS_DIR / "stop_all_systems.sh"
+STATUS_SCRIPT = SCRIPTS_DIR / "check_system_status.sh"
 
 # Global process tracking for cleanup
 spawned_processes: List[subprocess.Popen] = []
@@ -531,22 +537,22 @@ class OSRSAdminMainWindow(QMainWindow):
         layout.addWidget(self.stop_all_btn, 0, 2, 1, 2)
 
         # Secondary action buttons
-        self.kg_update_btn = QPushButton("🧠 Trigger KG Update")
-        self.kg_update_btn.clicked.connect(self.trigger_kg_update)
-        layout.addWidget(self.kg_update_btn, 1, 0)
+        self.status_btn = QPushButton("📊 Check Status")
+        self.status_btn.setProperty("buttonType", "info")
+        self.status_btn.clicked.connect(self.check_system_status)
+        layout.addWidget(self.status_btn, 1, 0)
 
         self.frontend_btn = QPushButton("🌐 Open Frontend")
         self.frontend_btn.clicked.connect(self.open_frontend)
         layout.addWidget(self.frontend_btn, 1, 1)
 
-        self.api_health_btn = QPushButton("🔍 API Health")
-        self.api_health_btn.clicked.connect(self.check_api_health)
-        layout.addWidget(self.api_health_btn, 1, 2)
+        self.watchdog_log_btn = QPushButton("� Watchdog Log")
+        self.watchdog_log_btn.clicked.connect(self.open_watchdog_log)
+        layout.addWidget(self.watchdog_log_btn, 1, 2)
 
-        self.dev_server_btn = QPushButton("⚛️ Dev Server")
-        self.dev_server_btn.setProperty("buttonType", "warning")
-        self.dev_server_btn.clicked.connect(self.start_dev_server)
-        layout.addWidget(self.dev_server_btn, 1, 3)
+        self.api_log_btn = QPushButton("🔧 API Log")
+        self.api_log_btn.clicked.connect(self.open_api_log)
+        layout.addWidget(self.api_log_btn, 1, 3)
 
         # Status display
         self.control_status_label = QLabel("Ready")
@@ -920,40 +926,38 @@ class OSRSAdminMainWindow(QMainWindow):
     # Action Methods - Connected to button clicks
 
     def start_all_services(self):
-        """Start all OSRS AI services with intelligent orchestration"""
+        """
+        Start all OSRS AI services using shell script.
+        Uses scripts/start_all_systems.sh directly (no API calls for security).
+
+        Services started:
+        - Streamlined Watchdog (wiki monitoring + GE updates)
+        - OSRS API Server (Flask API with RAG)
+        - Frontend GUI (React PWA)
+        """
         self.log_message("🚀 Starting all OSRS AI services...", "system")
         self.control_status_label.setText("Starting services...")
 
         def run_start():
             try:
-                # Start core services (API, Ollama) without GUI
-                self.log_message("🚀 Starting core OSRS AI services...", "system")
-                services_result = subprocess.run([
-                    str(REPO_ROOT / "api" / "start-services-only.command")
-                ], capture_output=True, text=True, cwd=REPO_ROOT, timeout=30)
+                # Use the unified start script
+                self.log_message(f"� Executing: {START_SCRIPT}", "system")
 
-                if services_result.returncode != 0:
-                    self.log_message(f"❌ Failed to start core services: {services_result.stderr}", "system")
-                    self.control_status_label.setText("❌ Failed to start services")
-                    return
+                result = subprocess.run([
+                    "bash", str(START_SCRIPT)
+                ], capture_output=True, text=True, cwd=REPO_ROOT, timeout=60)
 
-                self.log_message("✅ Core services started successfully", "system")
-                self.log_message(services_result.stdout, "system")
-
-                # Start intelligent orchestrator
-                orchestrator_success = self.process_manager.start_process(
-                    "orchestrator",
-                    ["python3", str(SCRIPTS_DIR / "orchestrator.py"), "--daemon"],
-                    REPO_ROOT
-                )
-
-                if orchestrator_success:
-                    self.log_message("✅ Intelligent orchestrator started successfully", "orchestrator")
-                    self.control_status_label.setText("✅ All services started")
+                if result.returncode == 0:
+                    self.log_message("✅ All services started successfully", "system")
+                    self.log_message(result.stdout, "system")
+                    self.control_status_label.setText("✅ All services running")
                 else:
-                    self.log_message("❌ Failed to start orchestrator", "orchestrator")
-                    self.control_status_label.setText("❌ Orchestrator failed")
+                    self.log_message(f"❌ Failed to start services: {result.stderr}", "system")
+                    self.control_status_label.setText("❌ Failed to start")
 
+            except subprocess.TimeoutExpired:
+                self.log_message("⚠️ Start command timed out (services may still be starting)", "system")
+                self.control_status_label.setText("⚠️ Timeout (check status)")
             except Exception as e:
                 self.log_message(f"❌ Error starting services: {e}", "system")
                 self.control_status_label.setText("❌ Error occurred")
@@ -962,85 +966,102 @@ class OSRSAdminMainWindow(QMainWindow):
         threading.Thread(target=run_start, daemon=True).start()
 
     def stop_all_services(self):
-        """Stop all OSRS AI services"""
+        """
+        Stop all OSRS AI services using shell script.
+        Uses scripts/stop_all_systems.sh directly (no API calls for security).
+
+        Services stopped:
+        - Frontend GUI (React PWA)
+        - OSRS API Server (Flask API)
+        - Streamlined Watchdog (wiki monitoring + GE updates)
+        """
         self.log_message("🛑 Stopping all OSRS AI services...", "system")
         self.control_status_label.setText("Stopping services...")
 
         def run_stop():
             try:
-                # Stop orchestrator first
-                self.process_manager.stop_process("orchestrator")
+                # Use the unified stop script
+                self.log_message(f"📜 Executing: {STOP_SCRIPT}", "system")
 
-                # Stop other services
-                stop_result = subprocess.run([
-                    str(REPO_ROOT / "api" / "stop-all.command")
-                ], capture_output=True, text=True, cwd=REPO_ROOT)
+                result = subprocess.run([
+                    "bash", str(STOP_SCRIPT)
+                ], capture_output=True, text=True, cwd=REPO_ROOT, timeout=30)
 
-                if stop_result.returncode == 0:
+                if result.returncode == 0:
                     self.log_message("✅ All services stopped successfully", "system")
+                    self.log_message(result.stdout, "system")
                     self.control_status_label.setText("✅ All services stopped")
                 else:
-                    self.log_message(f"⚠️ Stop command completed with warnings: {stop_result.stderr}", "system")
+                    self.log_message(f"⚠️ Stop command completed with warnings: {result.stderr}", "system")
                     self.control_status_label.setText("⚠️ Stopped with warnings")
 
+            except subprocess.TimeoutExpired:
+                self.log_message("⚠️ Stop command timed out", "system")
+                self.control_status_label.setText("⚠️ Timeout")
             except Exception as e:
                 self.log_message(f"❌ Error stopping services: {e}", "system")
                 self.control_status_label.setText("❌ Error occurred")
 
         threading.Thread(target=run_stop, daemon=True).start()
 
-    def trigger_kg_update(self):
-        """Trigger knowledge graph update"""
-        self.log_message("🧠 Triggering KG update...", "kg")
+    def check_system_status(self):
+        """
+        Check status of all services using shell script.
+        Uses scripts/check_system_status.sh directly (no API calls).
+        """
+        self.log_message("📊 Checking system status...", "system")
 
-        def run_kg_update():
+        def run_status_check():
             try:
                 result = subprocess.run([
-                    "python3", str(SCRIPTS_DIR / "orchestrator.py"), "--trigger-update"
-                ], capture_output=True, text=True, cwd=REPO_ROOT)
+                    "bash", str(STATUS_SCRIPT)
+                ], capture_output=True, text=True, cwd=REPO_ROOT, timeout=10)
 
                 if result.returncode == 0:
-                    self.log_message("✅ KG update triggered successfully", "kg")
+                    self.log_message("✅ Status check complete", "system")
+                    self.log_message(result.stdout, "system")
                 else:
-                    self.log_message(f"❌ KG update failed: {result.stderr}", "kg")
+                    self.log_message(f"⚠️ Status check had warnings: {result.stderr}", "system")
 
+            except subprocess.TimeoutExpired:
+                self.log_message("⚠️ Status check timed out", "system")
             except Exception as e:
-                self.log_message(f"❌ KG update error: {e}", "kg")
+                self.log_message(f"❌ Status check error: {e}", "system")
 
-        threading.Thread(target=run_kg_update, daemon=True).start()
+        threading.Thread(target=run_status_check, daemon=True).start()
 
     def open_frontend(self):
         """Open the frontend in default browser"""
         import webbrowser
         try:
-            webbrowser.open('http://localhost:5173')
-            self.log_message("🌐 Opened frontend in browser", "system")
+            webbrowser.open('http://localhost:3005')
+            self.log_message("🌐 Opened frontend in browser (port 3005)", "system")
         except Exception as e:
             self.log_message(f"❌ Failed to open frontend: {e}", "system")
 
-    def check_api_health(self):
-        """Check API health status"""
-        import webbrowser
+    def open_watchdog_log(self):
+        """Open watchdog log file in default text editor"""
         try:
-            webbrowser.open('http://localhost:5002/health')
-            self.log_message("🔍 Opened API health check", "api")
+            log_file = LOG_DIR / "watchdog.out"
+            if log_file.exists():
+                subprocess.run(["open", str(log_file)])
+                self.log_message(f"� Opened watchdog log: {log_file}", "system")
+            else:
+                self.log_message(f"⚠️ Watchdog log not found: {log_file}", "system")
         except Exception as e:
-            self.log_message(f"❌ Failed to open API health: {e}", "api")
+            self.log_message(f"❌ Failed to open watchdog log: {e}", "system")
 
-    def start_dev_server(self):
-        """Start the frontend development server"""
-        self.log_message("⚛️ Starting frontend dev server...", "system")
-
-        success = self.process_manager.start_process(
-            "frontend",
-            ["npm", "run", "dev"],
-            REPO_ROOT / "frontend"
-        )
-
-        if success:
-            self.log_message("✅ Frontend dev server started", "system")
-        else:
-            self.log_message("❌ Failed to start frontend dev server", "system")
+    def open_api_log(self):
+        """Open API log file in default text editor"""
+        try:
+            log_file = LOG_DIR / "api.out"
+            if log_file.exists():
+                subprocess.run(["open", str(log_file)])
+                self.log_message(f"🔧 Opened API log: {log_file}", "system")
+            else:
+                self.log_message(f"⚠️ API log not found: {log_file}", "system")
+        except Exception as e:
+            self.log_message(f"❌ Failed to open API log: {e}", "system")
 
     def closeEvent(self, event):
         """Handle window close event with proper cleanup"""
