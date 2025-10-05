@@ -352,6 +352,42 @@ class PriceHistoryService:
 
         return items
 
+    def search_item_names(self, query: str, limit: int = 10) -> List[str]:
+        """
+        Search for item names in the GE database that match the query.
+        Uses case-insensitive LIKE search for autocomplete functionality.
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results to return
+
+        Returns:
+            List of matching item names
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Use LIKE with wildcards for fuzzy matching
+        search_pattern = f"%{query}%"
+
+        cursor.execute("""
+            SELECT DISTINCT item_name
+            FROM price_history_complete
+            WHERE item_name LIKE ? COLLATE NOCASE
+            ORDER BY
+                CASE
+                    WHEN item_name LIKE ? COLLATE NOCASE THEN 1
+                    ELSE 2
+                END,
+                item_name
+            LIMIT ?
+        """, (search_pattern, f"{query}%", limit))
+
+        items = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        return items
+
     def record_timeseries(self, item_id: int, item_name: str, timestamp: int,
                          timestep: str, avg_high_price: int, avg_low_price: int,
                          high_price_volume: int, low_price_volume: int):

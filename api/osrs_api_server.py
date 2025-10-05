@@ -510,6 +510,36 @@ class OSRSAPIServer:
                     'success': False
                 }), 500
 
+        @self.app.route('/economic/search_items', methods=['GET'])
+        def search_ge_items():
+            """Search GE items by name for autocomplete (uses actual GE database)"""
+            try:
+                query = request.args.get('q', '')
+                limit = request.args.get('limit', 10, type=int)
+
+                if not query:
+                    return jsonify({
+                        'error': 'Missing query parameter',
+                        'success': False
+                    }), 400
+
+                # Search actual GE item names from price_history_complete table
+                results = self.price_history_service.search_item_names(query, limit)
+
+                return jsonify({
+                    'query': query,
+                    'results': results,
+                    'count': len(results),
+                    'success': True
+                })
+
+            except Exception as e:
+                logger.error(f"Error searching GE items: {e}")
+                return jsonify({
+                    'error': str(e),
+                    'success': False
+                }), 500
+
         @self.app.route('/watchdog/status', methods=['POST'])
         def set_watchdog_status():
             """Signal watchdog active/inactive status"""

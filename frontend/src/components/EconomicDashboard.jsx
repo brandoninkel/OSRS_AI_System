@@ -79,8 +79,8 @@ export default function EconomicDashboard() {
     }
 
     try {
-      // Search wiki pages via API
-      const response = await fetch(`${API_BASE}/wiki/search?q=${encodeURIComponent(input)}&limit=10`)
+      // Search GE items via API (uses actual GE database)
+      const response = await fetch(`${API_BASE}/economic/search_items?q=${encodeURIComponent(input)}&limit=10`)
       const data = await response.json()
 
       if (data.success && data.results) {
