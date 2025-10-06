@@ -338,6 +338,9 @@ def perform_update():
                     new_records += 1
                     updated_items.append((item_id, item_name))
             except Exception as e:
+                # Silently skip items with bad timestamp data (non-critical)
+                if "NoneType" in str(e) and "not supported between" in str(e):
+                    continue
                 logger.error(f"Error processing item {item_id_str}: {e}")
                 continue
         
