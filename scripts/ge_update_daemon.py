@@ -458,7 +458,12 @@ if __name__ == "__main__":
             logger.info("Running single GE update (watchdog mode)")
 
             # Verify database first
-            verify_and_repair_database()
+            if not verify_and_repair_database():
+                logger.error("Database verification failed")
+                sys.exit(1)
+
+            # Recompute missing analytics if needed
+            recompute_missing_analytics()
 
             # Run single update
             success = perform_update()
