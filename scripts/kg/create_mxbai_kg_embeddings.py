@@ -264,7 +264,8 @@ class MXBAIKGEmbeddingCreator:
                 with open(self.output_file, 'r') as f:
                     for line in f:
                         data = json.loads(line.strip())
-                        existing_entities.add(data['entity'])
+                        # Use 'title' field (matches what _process_entity creates)
+                        existing_entities.add(data['title'])
             except Exception as e:
                 logger.warning(f"Could not load existing embeddings: {e}")
 
