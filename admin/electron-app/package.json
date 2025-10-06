@@ -1,0 +1,48 @@
+{
+  "name": "osrs-ai-admin",
+  "version": "1.0.0",
+  "description": "OSRS AI System Admin Control Center",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.osrs-ai.admin",
+    "productName": "OSRS AI Admin",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": ["AppImage", "deb"]
+    }
+  },
+  "keywords": ["osrs", "ai", "admin", "monitoring"],
+  "author": "OSRS AI Systems",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "systeminformation": "^5.21.20",
+    "tail": "^2.2.6",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  }
+}
+

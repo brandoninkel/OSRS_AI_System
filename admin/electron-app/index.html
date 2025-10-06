@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSRS AI Admin Control Center</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Custom Title Bar -->
+  <div class="titlebar">
+    <div class="titlebar-drag">
+      <span class="titlebar-icon">⚡</span>
+      <span class="titlebar-title">OSRS AI CONTROL CENTER</span>
+    </div>
+    <div class="titlebar-controls">
+      <div class="titlebar-button minimize">−</div>
+      <div class="titlebar-button maximize">□</div>
+      <div class="titlebar-button close">×</div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">
+          <span class="logo-icon">🚀</span>
+          <span class="logo-text">OSRS AI</span>
+        </h1>
+        <div class="status-badge" id="systemStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">INITIALIZING</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="time" id="currentTime">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Left Panel: Controls & Resources -->
+      <div class="left-panel">
+        <!-- Control Panel -->
+        <section class="card control-panel">
+          <h2 class="card-title">
+            <span class="card-icon">🎮</span>
+            SYSTEM CONTROL
+          </h2>
+          <div class="control-buttons">
+            <button class="btn btn-primary" id="startAllBtn">
+              <span class="btn-icon">▶</span>
+              START ALL
+            </button>
+            <button class="btn btn-danger" id="stopAllBtn">
+              <span class="btn-icon">■</span>
+              STOP ALL
+            </button>
+            <button class="btn btn-secondary" id="statusBtn">
+              <span class="btn-icon">📊</span>
+              STATUS
+            </button>
+            <button class="btn btn-secondary" id="frontendBtn">
+              <span class="btn-icon">🌐</span>
+              OPEN GUI
+            </button>
+          </div>
+        </section>
+
+        <!-- System Resources -->
+        <section class="card resources">
+          <h2 class="card-title">
+            <span class="card-icon">📊</span>
+            SYSTEM RESOURCES
+          </h2>
+          <div class="resource-grid">
+            <!-- CPU -->
+            <div class="resource-item">
+              <div class="resource-header">
+                <span class="resource-label">CPU</span>
+                <span class="resource-value" id="cpuValue">0%</span>
+              </div>
+              <div class="progress-ring" id="cpuRing">
+                <svg viewBox="0 0 100 100">
+                  <circle class="progress-ring-bg" cx="50" cy="50" r="45"></circle>
+                  <circle class="progress-ring-fill" cx="50" cy="50" r="45" id="cpuCircle"></circle>
+                  <text x="50" y="55" class="progress-ring-text" id="cpuText">0%</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Memory -->
+            <div class="resource-item">
+              <div class="resource-header">
+                <span class="resource-label">MEMORY</span>
+                <span class="resource-value" id="memValue">0 GB</span>
+              </div>
+              <div class="progress-ring" id="memRing">
+                <svg viewBox="0 0 100 100">
+                  <circle class="progress-ring-bg" cx="50" cy="50" r="45"></circle>
+                  <circle class="progress-ring-fill" cx="50" cy="50" r="45" id="memCircle"></circle>
+                  <text x="50" y="55" class="progress-ring-text" id="memText">0%</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Disk -->
+            <div class="resource-item">
+              <div class="resource-header">
+                <span class="resource-label">DISK</span>
+                <span class="resource-value" id="diskValue">0 GB</span>
+              </div>
+              <div class="progress-ring" id="diskRing">
+                <svg viewBox="0 0 100 100">
+                  <circle class="progress-ring-bg" cx="50" cy="50" r="45"></circle>
+                  <circle class="progress-ring-fill" cx="50" cy="50" r="45" id="diskCircle"></circle>
+                  <text x="50" y="55" class="progress-ring-text" id="diskText">0%</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Process Status -->
+        <section class="card processes">
+          <h2 class="card-title">
+            <span class="card-icon">⚙️</span>
+            PROCESSES
+          </h2>
+          <div class="process-list">
+            <div class="process-item" id="watchdogProcess">
+              <div class="process-info">
+                <span class="process-icon">📡</span>
+                <span class="process-name">Watchdog</span>
+              </div>
+              <div class="process-status">
+                <span class="status-dot"></span>
+                <span class="status-text">STOPPED</span>
+              </div>
+            </div>
+            <div class="process-item" id="apiProcess">
+              <div class="process-info">
+                <span class="process-icon">🔧</span>
+                <span class="process-name">API Server</span>
+              </div>
+              <div class="process-status">
+                <span class="status-dot"></span>
+                <span class="status-text">STOPPED</span>
+              </div>
+            </div>
+            <div class="process-item" id="frontendProcess">
+              <div class="process-info">
+                <span class="process-icon">🎨</span>
+                <span class="process-name">Frontend</span>
+              </div>
+              <div class="process-status">
+                <span class="status-dot"></span>
+                <span class="status-text">STOPPED</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Panel: Operations & Logs -->
+      <div class="right-panel">
+        <!-- Current Operation -->
+        <section class="card operation">
+          <h2 class="card-title">
+            <span class="card-icon">⚡</span>
+            CURRENT OPERATION
+          </h2>
+          <div class="operation-content">
+            <div class="operation-task" id="operationTask">System Idle</div>
+            <div class="operation-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="operationProgress" style="width: 0%"></div>
+                <span class="progress-text" id="operationPercent">0%</span>
+              </div>
+            </div>
+            <div class="operation-status" id="operationStatus">Ready</div>
+          </div>
+        </section>
+
+        <!-- Logs -->
+        <section class="card logs">
+          <div class="logs-header">
+            <h2 class="card-title">
+              <span class="card-icon">📋</span>
+              SYSTEM LOGS
+            </h2>
+            <div class="logs-tabs">
+              <button class="tab-btn active" data-tab="all">ALL</button>
+              <button class="tab-btn" data-tab="watchdog">WATCHDOG</button>
+              <button class="tab-btn" data-tab="api">API</button>
+              <button class="tab-btn" data-tab="system">SYSTEM</button>
+            </div>
+          </div>
+          <div class="logs-content">
+            <div class="log-view active" id="logAll"></div>
+            <div class="log-view" id="logWatchdog"></div>
+            <div class="log-view" id="logApi"></div>
+            <div class="log-view" id="logSystem"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
+
