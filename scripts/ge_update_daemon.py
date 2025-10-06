@@ -449,15 +449,11 @@ if __name__ == "__main__":
         try:
             logger.info("Running single GE update (watchdog mode)")
 
-            # Initialize services
-            price_service = PriceHistoryService()
-            analytics_service = PriceAnalyticsService(price_service.db_path)
-
-            # Verify database
-            verify_database(price_service)
+            # Verify database first
+            verify_and_repair_database()
 
             # Run single update
-            success = run_update(price_service, analytics_service)
+            success = perform_update()
 
             if success:
                 logger.info("✅ Single update completed successfully")
