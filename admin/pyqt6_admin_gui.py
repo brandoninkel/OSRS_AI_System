@@ -799,89 +799,23 @@ class OSRSAdminMainWindow(QMainWindow):
                 self.system_log.verticalScrollBar().maximum()
             )
 
-    def update_orchestrator_logs(self):
-        """Update orchestrator logs from log file"""
+    def update_progress_display(self, task: str, progress: int, status: str, eta: str = ""):
+        """Update the unified progress display (installer-style)"""
         try:
-            orchestrator_log_file = REPO_ROOT / "logs" / "orchestrator.out"
-            if orchestrator_log_file.exists():
-                with open(orchestrator_log_file, 'r') as f:
-                    content = f.read()
+            # Update task label
+            self.current_task_label.setText(task)
 
-                # Only show last 50 lines to avoid overwhelming the GUI
-                lines = content.strip().split('\n')
-                recent_lines = lines[-50:] if len(lines) > 50 else lines
+            # Update progress bar
+            self.unified_progress.setValue(progress)
 
-                # Clear and update orchestrator log
-                self.orchestrator_log.clear()
-                for line in recent_lines:
-                    if line.strip():
-                        self.orchestrator_log.append(line)
-
-                # Auto-scroll to bottom
-                self.orchestrator_log.verticalScrollBar().setValue(
-                    self.orchestrator_log.verticalScrollBar().maximum()
-                )
-        except Exception as e:
-            print(f"Error reading orchestrator logs: {e}")
-
-    def update_pipeline_progress(self, orchestrator_status: Dict):
-        """Update pipeline progress bars with orchestrator status"""
-        try:
-            progress_data = orchestrator_status.get("progress", {})
-            stages = progress_data.get("stages", {})
-            current_stage = orchestrator_status.get("current_stage", "idle")
-            queue_length = orchestrator_status.get("queue_length", 0)
-
-            # Update overall progress
-            overall_progress = progress_data.get("overall_progress", 0.0)
-            self.overall_progress.setValue(int(overall_progress * 100))
-
-            # Update individual stage progress bars
-            stage_mapping = {
-                "prepare": "embeddings",  # Map prepare to first progress bar
-                "embeddings": "kg_triples",
-                "kg_update": "kg_model",
-                "cleanup": "kg_embeddings"
-            }
-
-            for orchestrator_stage, gui_stage in stage_mapping.items():
-                if orchestrator_stage in stages and gui_stage in self.stage_progress:
-                    stage_data = stages[orchestrator_stage]
-                    progress = stage_data.get("progress", 0.0)
-                    status = stage_data.get("status", "pending")
-                    eta = stage_data.get("eta", 0)
-
-                    # Update progress bar
-                    self.stage_progress[gui_stage].setValue(int(progress * 100))
-
-                    # Update status label
-                    if gui_stage in self.stage_labels:
-                        if status == "running":
-                            status_text = f"Running (ETA: {eta:.0f}s)" if eta > 0 else "Running"
-                        elif status == "completed":
-                            status_text = "✅ Complete"
-                        elif status == "failed":
-                            status_text = "❌ Failed"
-                        elif status == "error":
-                            status_text = "⚠️ Error"
-                        else:
-                            status_text = "Pending"
-
-                        self.stage_labels[gui_stage].setText(status_text)
-
-            # Update pipeline info label
-            if current_stage == "idle":
-                if queue_length > 0:
-                    info_text = f"Queue: {queue_length} tasks pending"
-                else:
-                    info_text = "Pipeline idle - waiting for changes"
+            # Update status with ETA if provided
+            if eta:
+                self.progress_status_label.setText(f"{status} - ETA: {eta}")
             else:
-                info_text = f"Current: {current_stage.replace('_', ' ').title()}"
-
-            self.pipeline_info_label.setText(info_text)
+                self.progress_status_label.setText(status)
 
         except Exception as e:
-            print(f"Error updating pipeline progress: {e}")
+            print(f"Error updating progress display: {e}")
 
     # Action Methods - Connected to button clicks
 
