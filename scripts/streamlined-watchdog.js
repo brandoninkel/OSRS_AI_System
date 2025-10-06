@@ -1989,12 +1989,12 @@ print(processed)
       }
 
       // Fallback: Run KG update directly
-      console.log(chalk.blue(`   🔄 Running direct KG update...`));
+      console.log(chalk.blue(`   🔄 Running direct KG embedding generation...`));
 
       const { spawn } = require('child_process');
       const kgProcess = spawn('python3', [
-        path.join(__dirname, 'kg_auto_updater.py'),
-        '--trigger-update'
+        path.join(__dirname, 'kg/create_mxbai_kg_embeddings.py'),
+        '--incremental'
       ], {
         detached: true,
         stdio: 'ignore',
@@ -2011,15 +2011,14 @@ print(processed)
 
   async triggerKgUpdateWithProgress() {
     return new Promise((resolve, reject) => {
-      console.log(chalk.blue('   🔄 Starting KG auto-updater...'));
+      console.log(chalk.blue('   🔄 Starting KG embedding generation...'));
 
       this.embeddingProgress.kg.status = 'running';
 
       const kgProcess = spawn('python3', [
         '-u',  // Unbuffered output for real-time progress
-        path.join(__dirname, 'kg_auto_updater.py'),
-        '--trigger-update',
-        '--progress-mode'
+        path.join(__dirname, 'kg/create_mxbai_kg_embeddings.py'),
+        '--incremental'  // Use incremental mode for faster updates
       ], {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: path.join(__dirname, '..')
