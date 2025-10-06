@@ -58,12 +58,14 @@ fi
 
 if [ ! -f "$PID_DIR/watchdog.pid" ]; then
     cd "$PROJECT_ROOT/scripts"
+    # Run with completion-based orchestration (triggers embeddings after each cycle)
+    # All components restored: template checker, KG embeddings, wiki embeddings
     nohup node streamlined-watchdog.js --completion-based > "$LOG_DIR/watchdog.out" 2>&1 &
     WATCHDOG_PID=$!
     echo $WATCHDOG_PID > "$PID_DIR/watchdog.pid"
     echo -e "${GREEN}   ✅ Watchdog started (PID: $WATCHDOG_PID)${NC}"
     echo -e "${GREEN}      Log: $LOG_DIR/watchdog.out${NC}"
-    echo -e "${GREEN}      Includes: Wiki monitoring + GE price updates${NC}"
+    echo -e "${GREEN}      Includes: Wiki monitoring + GE price updates + Template validation + Embeddings${NC}"
 else
     echo -e "${GREEN}   ✅ Watchdog already running${NC}"
 fi
