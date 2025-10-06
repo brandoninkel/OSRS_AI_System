@@ -83,24 +83,47 @@ PROJECT_ROOT="$(dirname "$ADMIN_DIR")"
 # Change to project root
 cd "$PROJECT_ROOT"
 
-# Find Python 3
-if command -v python3 &> /dev/null; then
-    PYTHON_CMD="python3"
-elif command -v python &> /dev/null; then
-    PYTHON_CMD="python"
-else
-    osascript -e 'display dialog "Python 3 is required but not found. Please install Python 3." buttons {"OK"} default button "OK" with icon stop'
+# Set up PATH to include common Python locations
+export PATH="/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:$HOME/.pyenv/shims:$PATH"
+
+# Function to test if Python has PyQt6
+test_python_pyqt6() {
+    local python_cmd="$1"
+    if command -v "$python_cmd" &> /dev/null; then
+        if "$python_cmd" -c "import PyQt6" 2>/dev/null; then
+            echo "$python_cmd"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# Try to find Python with PyQt6 installed
+PYTHON_CMD=""
+
+# Try common Python commands in order
+for cmd in python3 /usr/bin/python3 /usr/local/bin/python3 /opt/homebrew/bin/python3 python; do
+    if PYTHON_CMD=$(test_python_pyqt6 "$cmd"); then
+        break
+    fi
+done
+
+# If no Python with PyQt6 found, show error with details
+if [ -z "$PYTHON_CMD" ]; then
+    # Get Python version for error message
+    if command -v python3 &> /dev/null; then
+        PYTHON_VERSION=$(python3 --version 2>&1)
+        PYTHON_PATH=$(which python3)
+
+        osascript -e "display dialog \"PyQt6 not found in system Python.\n\nPython: $PYTHON_PATH\nVersion: $PYTHON_VERSION\n\nPlease install PyQt6:\n  python3 -m pip install --user PyQt6 psutil\n\nOr run from terminal:\n  cd $ADMIN_DIR\n  python3 pyqt6_admin_gui.py\" buttons {\"OK\"} default button \"OK\" with icon stop"
+    else
+        osascript -e 'display dialog "Python 3 is required but not found. Please install Python 3." buttons {"OK"} default button "OK" with icon stop'
+    fi
     exit 1
 fi
 
-# Check if PyQt6 is installed
-if ! $PYTHON_CMD -c "import PyQt6" 2>/dev/null; then
-    osascript -e 'display dialog "PyQt6 is not installed. Installing now..." buttons {"OK"} default button "OK"'
-    $PYTHON_CMD -m pip install PyQt6 psutil
-fi
-
 # Launch the GUI
-exec $PYTHON_CMD "$ADMIN_DIR/pyqt6_admin_gui.py" 2>&1 | logger -t "OSRS-AI-Admin"
+exec "$PYTHON_CMD" "$ADMIN_DIR/pyqt6_admin_gui.py" 2>&1 | logger -t "OSRS-AI-Admin"
 EOF
 
 chmod +x "$MACOS_DIR/launch"

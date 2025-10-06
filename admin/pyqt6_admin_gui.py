@@ -463,20 +463,20 @@ class OSRSAdminMainWindow(QMainWindow):
         # Create splitter for resizable sections
         splitter = QSplitter(Qt.Orientation.Vertical)
 
-        # Top section: Control panel and system status
+        # Top section: Control panel and circular resource monitors
         top_widget = self.create_top_section()
         splitter.addWidget(top_widget)
 
-        # Middle section: Pipeline progress
-        middle_widget = self.create_pipeline_section()
+        # Middle section: Unified progress display (installer-style)
+        middle_widget = self.create_progress_section()
         splitter.addWidget(middle_widget)
 
-        # Bottom section: Logs and monitoring
+        # Bottom section: Logs (only 2 tabs: Watchdog and System)
         bottom_widget = self.create_logs_section()
         splitter.addWidget(bottom_widget)
 
-        # Set splitter proportions
-        splitter.setSizes([300, 200, 300])
+        # Set splitter proportions (more space for logs)
+        splitter.setSizes([350, 100, 400])
         main_layout.addWidget(splitter)
 
         # Status bar
@@ -502,18 +502,18 @@ class OSRSAdminMainWindow(QMainWindow):
         return layout
 
     def create_top_section(self) -> QWidget:
-        """Create the top section with control panel and system status"""
+        """Create the top section with control panel and circular resource monitors"""
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setSpacing(15)
 
         # Left side: Control Panel
         control_group = self.create_control_panel()
-        layout.addWidget(control_group)
+        layout.addWidget(control_group, stretch=2)
 
-        # Right side: System Status
-        status_group = self.create_system_status()
-        layout.addWidget(status_group)
+        # Right side: Circular Resource Monitors
+        resources_panel = self.create_circular_resources()
+        layout.addWidget(resources_panel, stretch=1)
 
         return widget
 
@@ -561,166 +561,131 @@ class OSRSAdminMainWindow(QMainWindow):
 
         return group
 
-    def create_system_status(self) -> QGroupBox:
-        """Create system status monitoring panel"""
-        group = QGroupBox("📊 System Status")
-        layout = QVBoxLayout(group)
-        layout.setSpacing(10)
+    def create_circular_resources(self) -> QGroupBox:
+        """Create circular resource monitors (CPU, Memory, Disk)"""
+        group = QGroupBox("📊 System Resources")
+        layout = QHBoxLayout(group)
+        layout.setSpacing(20)
 
-        # System resource indicators
-        resources_layout = QGridLayout()
+        # Create circular progress indicators for each resource
+        # CPU
+        cpu_widget = QWidget()
+        cpu_layout = QVBoxLayout(cpu_widget)
+        cpu_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # CPU Usage
-        cpu_label = QLabel("CPU Usage:")
+        self.cpu_circle = QProgressBar()
+        self.cpu_circle.setRange(0, 100)
+        self.cpu_circle.setValue(0)
+        self.cpu_circle.setTextVisible(True)
+        self.cpu_circle.setFormat("%p%")
+        self.cpu_circle.setMinimumSize(80, 80)
+        self.cpu_circle.setMaximumSize(80, 80)
+        cpu_layout.addWidget(self.cpu_circle, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        cpu_label = QLabel("CPU")
         cpu_label.setProperty("labelType", "subtitle")
-        resources_layout.addWidget(cpu_label, 0, 0)
+        cpu_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        cpu_layout.addWidget(cpu_label)
 
-        self.cpu_progress = QProgressBar()
-        self.cpu_progress.setRange(0, 100)
-        self.cpu_progress.setValue(0)
-        resources_layout.addWidget(self.cpu_progress, 0, 1)
+        layout.addWidget(cpu_widget)
 
-        self.cpu_value_label = QLabel("0%")
-        resources_layout.addWidget(self.cpu_value_label, 0, 2)
+        # Memory
+        mem_widget = QWidget()
+        mem_layout = QVBoxLayout(mem_widget)
+        mem_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Memory Usage
-        memory_label = QLabel("Memory Usage:")
-        memory_label.setProperty("labelType", "subtitle")
-        resources_layout.addWidget(memory_label, 1, 0)
+        self.memory_circle = QProgressBar()
+        self.memory_circle.setRange(0, 100)
+        self.memory_circle.setValue(0)
+        self.memory_circle.setTextVisible(True)
+        self.memory_circle.setFormat("%p%")
+        self.memory_circle.setMinimumSize(80, 80)
+        self.memory_circle.setMaximumSize(80, 80)
+        mem_layout.addWidget(self.memory_circle, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.memory_progress = QProgressBar()
-        self.memory_progress.setRange(0, 100)
-        self.memory_progress.setValue(0)
-        resources_layout.addWidget(self.memory_progress, 1, 1)
+        mem_label = QLabel("Memory")
+        mem_label.setProperty("labelType", "subtitle")
+        mem_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mem_layout.addWidget(mem_label)
 
-        self.memory_value_label = QLabel("0 GB / 0 GB")
-        resources_layout.addWidget(self.memory_value_label, 1, 2)
+        self.memory_value_label = QLabel("0 GB")
+        self.memory_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mem_layout.addWidget(self.memory_value_label)
 
-        # Disk Usage
-        disk_label = QLabel("Disk Usage:")
+        layout.addWidget(mem_widget)
+
+        # Disk
+        disk_widget = QWidget()
+        disk_layout = QVBoxLayout(disk_widget)
+        disk_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.disk_circle = QProgressBar()
+        self.disk_circle.setRange(0, 100)
+        self.disk_circle.setValue(0)
+        self.disk_circle.setTextVisible(True)
+        self.disk_circle.setFormat("%p%")
+        self.disk_circle.setMinimumSize(80, 80)
+        self.disk_circle.setMaximumSize(80, 80)
+        disk_layout.addWidget(self.disk_circle, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        disk_label = QLabel("Disk")
         disk_label.setProperty("labelType", "subtitle")
-        resources_layout.addWidget(disk_label, 2, 0)
-
-        self.disk_progress = QProgressBar()
-        self.disk_progress.setRange(0, 100)
-        self.disk_progress.setValue(0)
-        resources_layout.addWidget(self.disk_progress, 2, 1)
+        disk_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        disk_layout.addWidget(disk_label)
 
         self.disk_value_label = QLabel("0 GB free")
-        resources_layout.addWidget(self.disk_value_label, 2, 2)
+        self.disk_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        disk_layout.addWidget(self.disk_value_label)
 
-        layout.addLayout(resources_layout)
-
-        # Service status indicators
-        services_label = QLabel("🔧 Service Status:")
-        services_label.setProperty("labelType", "subtitle")
-        layout.addWidget(services_label)
-
-        self.service_labels = {}
-        services_layout = QGridLayout()
-
-        services = ["orchestrator", "api", "frontend", "watchdog"]
-        for i, service in enumerate(services):
-            name_label = QLabel(f"{service.title()}:")
-            services_layout.addWidget(name_label, i, 0)
-
-            status_label = QLabel("●")
-            status_label.setProperty("labelType", "status")
-            self.service_labels[service] = status_label
-            services_layout.addWidget(status_label, i, 1)
-
-            info_label = QLabel("Stopped")
-            info_label.setProperty("labelType", "status")
-            self.service_labels[f"{service}_info"] = info_label
-            services_layout.addWidget(info_label, i, 2)
-
-        layout.addLayout(services_layout)
+        layout.addWidget(disk_widget)
 
         return group
 
-    def create_pipeline_section(self) -> QGroupBox:
-        """Create pipeline progress monitoring section"""
-        group = QGroupBox("📊 Pipeline Progress")
+    def create_progress_section(self) -> QGroupBox:
+        """Create unified progress display (installer-style)"""
+        group = QGroupBox("⚙️ Current Operation")
         layout = QVBoxLayout(group)
-        layout.setSpacing(10)
+        layout.setSpacing(8)
 
-        # Overall progress
-        overall_label = QLabel("Overall Progress:")
-        overall_label.setProperty("labelType", "subtitle")
-        layout.addWidget(overall_label)
+        # Current task label (what's happening now)
+        self.current_task_label = QLabel("System idle")
+        self.current_task_label.setProperty("labelType", "subtitle")
+        layout.addWidget(self.current_task_label)
 
-        self.overall_progress = QProgressBar()
-        self.overall_progress.setRange(0, 100)
-        self.overall_progress.setValue(0)
-        layout.addWidget(self.overall_progress)
+        # Progress bar
+        self.unified_progress = QProgressBar()
+        self.unified_progress.setRange(0, 100)
+        self.unified_progress.setValue(0)
+        self.unified_progress.setTextVisible(True)
+        self.unified_progress.setFormat("%p% - %v/%m")
+        layout.addWidget(self.unified_progress)
 
-        # Individual stage progress
-        stages_layout = QGridLayout()
-
-        self.stage_progress = {}
-        self.stage_labels = {}
-
-        stages = [
-            ("embeddings", "📝 Regular Embeddings"),
-            ("kg_triples", "🧠 KG Triples"),
-            ("kg_model", "🤖 KG Model Training"),
-            ("kg_embeddings", "💾 KG Embeddings")
-        ]
-
-        for i, (stage_id, stage_name) in enumerate(stages):
-            # Stage name
-            name_label = QLabel(stage_name)
-            stages_layout.addWidget(name_label, i, 0)
-
-            # Progress bar
-            progress_bar = QProgressBar()
-            progress_bar.setRange(0, 100)
-            progress_bar.setValue(0)
-            self.stage_progress[stage_id] = progress_bar
-            stages_layout.addWidget(progress_bar, i, 1)
-
-            # Status label
-            status_label = QLabel("Idle")
-            status_label.setProperty("labelType", "status")
-            self.stage_labels[stage_id] = status_label
-            stages_layout.addWidget(status_label, i, 2)
-
-        layout.addLayout(stages_layout)
-
-        # ETA and current stage info
-        self.pipeline_info_label = QLabel("Pipeline idle")
-        self.pipeline_info_label.setProperty("labelType", "status")
-        layout.addWidget(self.pipeline_info_label)
+        # Status line (details + ETA)
+        self.progress_status_label = QLabel("Ready")
+        self.progress_status_label.setProperty("labelType", "status")
+        layout.addWidget(self.progress_status_label)
 
         return group
 
     def create_logs_section(self) -> QGroupBox:
-        """Create logs and monitoring section with tabs"""
-        group = QGroupBox("📋 System Logs & Monitoring")
+        """Create logs section with 2 tabs: Watchdog and System"""
+        group = QGroupBox("📋 System Logs")
         layout = QVBoxLayout(group)
 
-        # Create tab widget for different log types
+        # Create tab widget for logs
         self.log_tabs = QTabWidget()
 
-        # System logs tab
+        # Watchdog logs tab (main - wiki monitoring + GE updates)
+        self.watchdog_log = QTextEdit()
+        self.watchdog_log.setReadOnly(True)
+        self.watchdog_log.setFont(QFont("Menlo", 10))
+        self.log_tabs.addTab(self.watchdog_log, "� Watchdog")
+
+        # System logs tab (attribution + GE data processes + general system)
         self.system_log = QTextEdit()
         self.system_log.setReadOnly(True)
+        self.system_log.setFont(QFont("Menlo", 10))
         self.log_tabs.addTab(self.system_log, "🖥️ System")
-
-        # API logs tab
-        self.api_log = QTextEdit()
-        self.api_log.setReadOnly(True)
-        self.log_tabs.addTab(self.api_log, "🔌 API")
-
-        # Orchestrator logs tab
-        self.orchestrator_log = QTextEdit()
-        self.orchestrator_log.setReadOnly(True)
-        self.log_tabs.addTab(self.orchestrator_log, "🎼 Orchestrator")
-
-        # KG Update logs tab
-        self.kg_log = QTextEdit()
-        self.kg_log.setReadOnly(True)
-        self.log_tabs.addTab(self.kg_log, "🧠 KG Updates")
 
         layout.addWidget(self.log_tabs)
 
@@ -759,82 +724,77 @@ class OSRSAdminMainWindow(QMainWindow):
     def update_status_display(self, status: Dict):
         """Update all status displays with new data"""
         try:
-            # Update system resource displays
+            # Update circular resource monitors
             system = status.get("system", {})
 
             # CPU
             cpu_percent = int(system.get("cpu", 0))
-            self.cpu_progress.setValue(cpu_percent)
-            self.cpu_value_label.setText(f"{cpu_percent}%")
+            self.cpu_circle.setValue(cpu_percent)
+
+            # Set color based on usage
+            if cpu_percent > 80:
+                self.cpu_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.RED}; }}")
+            elif cpu_percent > 60:
+                self.cpu_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.ORANGE}; }}")
+            else:
+                self.cpu_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.GREEN}; }}")
 
             # Memory
             memory_percent = int(system.get("memory_percent", 0))
             memory_used = system.get("memory_used", 0)
-            memory_total = system.get("memory_total", 0)
-            self.memory_progress.setValue(memory_percent)
-            self.memory_value_label.setText(f"{memory_used:.1f} GB / {memory_total:.1f} GB")
+            self.memory_circle.setValue(memory_percent)
+            self.memory_value_label.setText(f"{memory_used:.1f} GB")
+
+            if memory_percent > 80:
+                self.memory_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.RED}; }}")
+            elif memory_percent > 60:
+                self.memory_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.ORANGE}; }}")
+            else:
+                self.memory_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.GREEN}; }}")
 
             # Disk
             disk_percent = int(system.get("disk_percent", 0))
             disk_free = system.get("disk_free", 0)
-            self.disk_progress.setValue(disk_percent)
+            self.disk_circle.setValue(disk_percent)
             self.disk_value_label.setText(f"{disk_free:.1f} GB free")
 
-            # Update service status indicators
+            if disk_percent > 80:
+                self.disk_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.RED}; }}")
+            elif disk_percent > 60:
+                self.disk_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.ORANGE}; }}")
+            else:
+                self.disk_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.GREEN}; }}")
+
+            # Update status bar with process count
             processes = status.get("processes", {})
-            running_count = 0
-
-            for service_name, service_info in processes.items():
-                if service_name in self.service_labels:
-                    status_indicator = self.service_labels[service_name]
-                    info_label = self.service_labels[f"{service_name}_info"]
-
-                    if service_info["status"] == "running":
-                        status_indicator.setText("🟢")
-                        status_indicator.setStyleSheet(f"color: {ModernColors.GREEN};")
-                        info_label.setText(f"PID: {service_info['pid']} | CPU: {service_info['cpu']:.1f}%")
-                        running_count += 1
-                    else:
-                        status_indicator.setText("🔴")
-                        status_indicator.setStyleSheet(f"color: {ModernColors.RED};")
-                        info_label.setText("Stopped")
-
-            # Update status bar
+            running_count = sum(1 for p in processes.values() if p.get("status") == "running")
             self.process_count.setText(f"Processes: {running_count}")
 
             if running_count > 0:
-                self.connection_status.setText("🟢 Connected")
+                self.connection_status.setText("🟢 Services Running")
                 self.connection_status.setStyleSheet(f"color: {ModernColors.GREEN};")
             else:
-                self.connection_status.setText("🔴 Disconnected")
+                self.connection_status.setText("🔴 Services Stopped")
                 self.connection_status.setStyleSheet(f"color: {ModernColors.RED};")
-
-            # Update orchestrator progress bars
-            orchestrator_status = status.get("orchestrator_progress", {})
-            self.update_pipeline_progress(orchestrator_status)
-
-            # Update orchestrator logs
-            self.update_orchestrator_logs()
 
         except Exception as e:
             self.log_message(f"Status update error: {e}", "system")
 
     def log_message(self, message: str, log_type: str = "system"):
-        """Add a message to the appropriate log tab"""
+        """Add a message to the appropriate log tab (watchdog or system)"""
         timestamp = time.strftime("%H:%M:%S")
         formatted_message = f"[{timestamp}] {message}\n"
 
-        if log_type == "system":
+        # Route to appropriate tab
+        if log_type in ["watchdog", "wiki", "ge"]:
+            # Watchdog tab: wiki monitoring, GE updates
+            self.watchdog_log.append(formatted_message.strip())
+            self.watchdog_log.verticalScrollBar().setValue(
+                self.watchdog_log.verticalScrollBar().maximum()
+            )
+        else:
+            # System tab: everything else (attribution, GE data, API, general)
             self.system_log.append(formatted_message.strip())
-        elif log_type == "api":
-            self.api_log.append(formatted_message.strip())
-        elif log_type == "orchestrator":
-            self.orchestrator_log.append(formatted_message.strip())
-        elif log_type == "kg":
-            self.kg_log.append(formatted_message.strip())
-
-        # Auto-scroll to bottom
-        if log_type == "system":
             self.system_log.verticalScrollBar().setValue(
                 self.system_log.verticalScrollBar().maximum()
             )
