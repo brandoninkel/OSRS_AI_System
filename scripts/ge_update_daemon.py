@@ -451,7 +451,7 @@ if __name__ == "__main__":
 
             # Initialize services
             price_service = PriceHistoryService()
-            analytics_service = PriceAnalyticsService()
+            analytics_service = PriceAnalyticsService(price_service.db_path)
 
             # Verify database
             verify_database(price_service)

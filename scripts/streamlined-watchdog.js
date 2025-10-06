@@ -2138,12 +2138,15 @@ print(processed)
       const startTime = Date.now();
       const totalSeconds = Math.floor(ms / 1000);
       let countdownInterval;
+      const isTTY = process.stdin.isTTY;
 
       const cleanup = () => {
         if (countdownInterval) clearInterval(countdownInterval);
-        process.stdin.removeAllListeners('data');
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
+        if (isTTY) {
+          process.stdin.removeAllListeners('data');
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+        }
       };
 
       const timeout = setTimeout(() => {
@@ -2159,24 +2162,27 @@ print(processed)
         const minutes = Math.floor(remaining / 60);
         const seconds = remaining % 60;
 
-        process.stdout.write(`\r${chalk.gray('⏳ Next cycle in:')} ${chalk.cyan(`${minutes}:${seconds.toString().padStart(2, '0')}`)} ${chalk.yellow('(Press any key to start now)')}`);
+        const keypressHint = isTTY ? chalk.yellow('(Press any key to start now)') : '';
+        process.stdout.write(`\r${chalk.gray('⏳ Next cycle in:')} ${chalk.cyan(`${minutes}:${seconds.toString().padStart(2, '0')}`)} ${keypressHint}`);
 
         if (remaining <= 0) {
           clearInterval(countdownInterval);
         }
       }, 1000);
 
-      // Set up keypress detection
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-      process.stdin.setEncoding('utf8');
+      // Set up keypress detection only if running in a TTY
+      if (isTTY) {
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
 
-      process.stdin.once('data', () => {
-        clearTimeout(timeout);
-        cleanup();
-        console.log(chalk.green('\n⚡ Manual cycle triggered!'));
-        resolve();
-      });
+        process.stdin.once('data', () => {
+          clearTimeout(timeout);
+          cleanup();
+          console.log(chalk.green('\n⚡ Manual cycle triggered!'));
+          resolve();
+        });
+      }
     });
   }
 
