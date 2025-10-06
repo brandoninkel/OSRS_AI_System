@@ -18,6 +18,35 @@ const ora = require('ora');
 const { spawn } = require('child_process');
 const os = require('os');
 
+// ============================================================================
+// EPIPE ERROR HANDLING
+// ============================================================================
+// Prevent EPIPE errors when stdout/stderr pipes are closed
+process.stdout.on('error', (err) => {
+  if (err.code === 'EPIPE') {
+    // Pipe closed, exit gracefully
+    process.exit(0);
+  }
+});
+
+process.stderr.on('error', (err) => {
+  if (err.code === 'EPIPE') {
+    // Pipe closed, exit gracefully
+    process.exit(0);
+  }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EPIPE') {
+    process.exit(0);
+  }
+  // Log other errors to file instead of stdout
+  const logFile = path.join(__dirname, '../logs/osrs_ai/watchdog_errors.log');
+  fs.appendFileSync(logFile, `${new Date().toISOString()} - Uncaught Exception: ${err.stack}\n`);
+  process.exit(1);
+});
+
 class StreamlinedOSRSWatchdog {
   constructor() {
     this.wikiApiUrl = 'https://oldschool.runescape.wiki/api.php';
