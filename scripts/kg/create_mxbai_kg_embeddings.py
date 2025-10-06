@@ -268,8 +268,8 @@ class MXBAIKGEmbeddingCreator:
             except Exception as e:
                 logger.warning(f"Could not load existing embeddings: {e}")
 
-        # Get all entities from KG model
-        all_entities = self.load_entities()
+        # Get all entities from KG model (already loaded in __init__)
+        all_entities = list(self.entity_to_id.keys())
 
         # Find new entities that need embeddings
         new_entities = []
