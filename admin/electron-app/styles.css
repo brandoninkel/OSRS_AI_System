@@ -5,6 +5,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap');
 
 :root {
+  /* Base font size for rem calculations */
+  font-size: 16px;
+
   /* Cyberpunk Colors */
   --bg-primary: #000000;
   --bg-secondary: #0a0a0f;
@@ -28,15 +31,30 @@
   --glow-magenta: rgba(255, 0, 255, 0.8);
   --glow-yellow: rgba(255, 255, 0, 0.8);
 
-  /* Spacing - Compact */
-  --spacing-xs: 0.2rem;
-  --spacing-sm: 0.4rem;
-  --spacing-md: 0.6rem;
-  --spacing-lg: 0.8rem;
-  --spacing-xl: 1rem;
+  /* Consistent 8px-based spacing scale (mobile-first) */
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
 
-  /* Clean straight edges */
+  /* Fluid spacing using clamp() for progressive enhancement */
+  --spacing-fluid-sm: clamp(0.5rem, 2vw, 1rem);
+  --spacing-fluid-md: clamp(0.75rem, 3vw, 1.5rem);
+  --spacing-fluid-lg: clamp(1rem, 4vw, 2rem);
+
+  /* Typography scale with fluid sizing */
+  --font-xs: clamp(0.625rem, 1.5vw, 0.75rem);   /* 10-12px */
+  --font-sm: clamp(0.75rem, 2vw, 0.875rem);     /* 12-14px */
+  --font-base: clamp(0.875rem, 2.5vw, 1rem);    /* 14-16px */
+  --font-lg: clamp(1rem, 3vw, 1.25rem);         /* 16-20px */
+  --font-xl: clamp(1.25rem, 4vw, 1.5rem);       /* 20-24px */
+
+  /* Border */
   --border-width: 2px;
+  --border-accent-width: 4px;
 
   /* Shadows with neon glow */
   --shadow-cyan: 0 0 10px var(--glow-cyan), 0 0 20px var(--glow-cyan), 0 0 30px var(--glow-cyan);
@@ -50,8 +68,17 @@
   box-sizing: border-box;
 }
 
+/* Ensure all images and media are constrained */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 body {
   font-family: 'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace;
+  font-size: var(--font-base);
+  line-height: 1.5;
   background: var(--bg-primary);
   background-image:
     repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px),
@@ -61,7 +88,9 @@ body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
+  /* Prevent content from touching edges */
+  padding: 0;
 }
 
 /* ============================================================================
@@ -270,23 +299,49 @@ body {
   color: var(--text-secondary);
 }
 
+/* Mobile-first: Single column layout */
 .main-content {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-fluid-sm);
+  padding: var(--spacing-3);
   overflow: hidden;
   flex: 1;
   min-height: 0;
+  max-width: 100%;
 }
 
 .left-panel,
 .right-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-fluid-sm);
   overflow-y: auto;
   min-height: 0;
+  max-width: 100%;
+}
+
+/* Tablet and up: Two-column grid layout */
+@media (min-width: 768px) {
+  .main-content {
+    display: grid;
+    grid-template-columns: minmax(280px, 320px) 1fr;
+    gap: var(--spacing-fluid-md);
+    padding: var(--spacing-4);
+  }
+
+  .left-panel,
+  .right-panel {
+    gap: var(--spacing-fluid-md);
+  }
+}
+
+/* Desktop: Wider spacing */
+@media (min-width: 1024px) {
+  .main-content {
+    padding: var(--spacing-5);
+    gap: var(--spacing-fluid-lg);
+  }
 }
 
 /* ============================================================================
@@ -295,19 +350,28 @@ body {
 
 .card {
   background: var(--bg-card);
-  border: 2px solid var(--border-color);
-  border-left: 4px solid var(--accent-primary);
-  padding: var(--spacing-md);
+  border: var(--border-width) solid var(--border-color);
+  border-left: var(--border-accent-width) solid var(--accent-primary);
+  padding: var(--spacing-3);
   box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.1);
   transition: all 0.3s;
   position: relative;
   flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .card:hover {
   border-left-color: var(--accent-secondary);
   box-shadow: inset 0 0 40px rgba(0, 255, 255, 0.2), 0 0 20px var(--glow-cyan);
   transform: translateX(2px);
+}
+
+/* Progressive enhancement for larger screens */
+@media (min-width: 768px) {
+  .card {
+    padding: var(--spacing-4);
+  }
 }
 
 .card-title {
@@ -330,27 +394,56 @@ body {
    CONTROL PANEL
    ============================================================================ */
 
+/* Mobile-first: Single column buttons */
 .control-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: 100%;
+}
+
+/* Tablet: 2-column grid */
+@media (min-width: 480px) {
+  .control-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-3);
+  }
+}
+
+/* Desktop: Keep 2-column but with more gap */
+@media (min-width: 768px) {
+  .control-buttons {
+    gap: var(--spacing-4);
+  }
 }
 
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid transparent;
-  font-size: 0.7rem;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: var(--border-width) solid transparent;
+  font-size: var(--font-xs);
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   cursor: pointer;
   transition: all 0.2s;
   text-transform: uppercase;
   position: relative;
   overflow: hidden;
+  white-space: nowrap;
+  min-height: 2.5rem;
+}
+
+/* Progressive enhancement for larger screens */
+@media (min-width: 768px) {
+  .btn {
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--font-sm);
+    min-height: 3rem;
+  }
 }
 
 .btn::after {
@@ -426,10 +519,19 @@ body {
    RESOURCES
    ============================================================================ */
 
+/* Mobile-first: 3-column grid for resources */
 .resource-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-md);
+  gap: var(--spacing-2);
+  width: 100%;
+}
+
+/* Tablet and up: More spacing */
+@media (min-width: 768px) {
+  .resource-grid {
+    gap: var(--spacing-4);
+  }
 }
 
 .resource-item {
@@ -445,14 +547,14 @@ body {
 }
 
 .resource-label {
-  font-size: 0.65rem;
+  font-size: var(--font-xs);
   font-weight: 600;
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
 .resource-value {
-  font-size: 0.7rem;
+  font-size: var(--font-sm);
   font-weight: 700;
   color: var(--accent-primary);
 }
@@ -747,125 +849,58 @@ body {
 }
 
 /* ============================================================================
-   RESPONSIVE
+   RESPONSIVE - MOBILE-FIRST APPROACH
    ============================================================================ */
 
-@media (max-width: 1400px) {
-  .main-content {
-    grid-template-columns: 280px 1fr;
-  }
-}
+/* Base styles are mobile-first (already defined above) */
 
-@media (max-width: 1024px) {
-  .main-content {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-
-  .left-panel {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-sm);
-    overflow-y: visible;
-  }
-
-  .resource-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .header {
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-
-  .logo {
-    font-size: 0.9rem;
-  }
-
-  .logo-icon {
-    font-size: 1rem;
-  }
-
-  .time {
-    font-size: 0.75rem;
-  }
-
-  .main-content {
-    padding: var(--spacing-sm);
-    gap: var(--spacing-sm);
-  }
-
-  .left-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .control-buttons {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .resource-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-sm);
-  }
-
+/* Small tablets and up (480px+) */
+@media (min-width: 480px) {
   .progress-ring {
     width: 70px;
     height: 70px;
   }
+}
 
-  .progress-ring-text {
-    font-size: 0.75rem;
+/* Tablets and up (768px+) */
+@media (min-width: 768px) {
+  .header {
+    padding: var(--spacing-4) var(--spacing-5);
   }
 
-  .resource-label {
-    font-size: 0.6rem;
+  .logo {
+    font-size: var(--font-lg);
   }
 
-  .resource-value {
-    font-size: 0.65rem;
+  .time {
+    font-size: var(--font-base);
+  }
+
+  .progress-ring {
+    width: 90px;
+    height: 90px;
   }
 }
 
+/* Desktop and up (1024px+) */
+@media (min-width: 1024px) {
+  .progress-ring {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* Mobile-specific refinements (max-width approach for edge cases) */
 @media (max-width: 480px) {
   .titlebar {
-    height: 28px;
-  }
-
-  .titlebar-title {
-    font-size: 0.65rem;
+    height: clamp(24px, 6vw, 32px);
   }
 
   .header {
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-2);
     align-items: flex-start;
-  }
-
-  .control-buttons {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-xs);
-  }
-
-  .resource-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-xs);
-  }
-
-  .resource-item {
-    gap: 0;
-  }
-
-  .resource-header {
-    margin-bottom: 2px;
-  }
-
-  .resource-label {
-    font-size: 0.55rem;
-  }
-
-  .resource-value {
-    font-size: 0.6rem;
+    padding: var(--spacing-2);
   }
 
   .progress-ring {
@@ -874,38 +909,18 @@ body {
     margin: 0 auto;
   }
 
-  .progress-ring-text {
-    font-size: 0.65rem;
-  }
-
   /* Make processes card more compact */
   .processes {
-    max-height: 120px;
+    max-height: clamp(100px, 20vh, 150px);
   }
 
   .process-list {
-    gap: var(--spacing-xs);
+    gap: var(--spacing-1);
   }
 
   .process-item {
-    padding: 4px var(--spacing-xs);
-    min-height: 32px;
-  }
-
-  .process-icon {
-    font-size: 0.75rem;
-  }
-
-  .process-name {
-    font-size: 0.6rem;
-  }
-
-  .process-status {
-    gap: 3px;
-  }
-
-  .process-status .status-text {
-    font-size: 0.55rem;
+    padding: var(--spacing-1) var(--spacing-2);
+    min-height: 2rem;
   }
 
   .status-dot {
@@ -914,58 +929,26 @@ body {
   }
 
   /* Make current operation readable */
-  .current-operation {
-    padding: var(--spacing-sm);
-  }
-
   .operation-task {
-    font-size: 0.75rem;
-    margin-bottom: var(--spacing-xs);
     word-break: break-word;
+    hyphens: auto;
   }
 
   .progress-bar {
-    height: 18px;
-    margin: var(--spacing-xs) 0;
-  }
-
-  .progress-text {
-    font-size: 0.65rem;
+    height: clamp(16px, 4vw, 24px);
   }
 
   .operation-meta {
     flex-direction: column;
-    gap: 2px;
+    gap: var(--spacing-1);
     align-items: flex-start;
-  }
-
-  .operation-status {
-    font-size: 0.65rem;
   }
 
   .logs-tabs {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-xs);
+    gap: var(--spacing-2);
     width: 100%;
-  }
-
-  .card-title {
-    font-size: 0.65rem;
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .card {
-    padding: var(--spacing-sm);
-  }
-
-  .btn {
-    font-size: 0.6rem;
-    padding: 6px var(--spacing-sm);
-  }
-
-  .btn-icon {
-    font-size: 0.7rem;
   }
 }
 
