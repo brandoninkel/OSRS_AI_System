@@ -123,7 +123,9 @@ class StreamlinedOSRSWatchdog {
 
     // Optional skips
     this.skipReprocess = process.env.OSRS_SKIP_REPROCESS === '1' || process.argv.includes('--skip-reprocess');
-    this.skipChecker = process.env.OSRS_SKIP_CHECKER === '1' || process.argv.includes('--skip-checker');
+    // Skip checker by default since wiki_template_checker.py doesn't exist
+    // Can be enabled with --enable-checker flag if the module is added later
+    this.skipChecker = !(process.argv.includes('--enable-checker') || process.env.OSRS_ENABLE_CHECKER === '1');
 
     // Orchestration mode flags
     this.completionBased = process.argv.includes('--completion-based');
