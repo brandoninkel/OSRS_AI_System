@@ -316,9 +316,14 @@ def perform_update():
                 last_timestamp = price_service.get_last_timestamp(item_id)
                 high_time = price_info.get('highTime', 0)
                 low_time = price_info.get('lowTime', 0)
-                new_timestamp = max(high_time, low_time) * 1000
-                
-                if last_timestamp and new_timestamp <= last_timestamp:
+                new_timestamp = max(high_time, low_time) * 1000 if (high_time or low_time) else None
+
+                # Skip if we have both timestamps and new one is not newer
+                if last_timestamp is not None and new_timestamp is not None and new_timestamp <= last_timestamp:
+                    continue
+
+                # Skip if we don't have a valid new timestamp
+                if new_timestamp is None:
                     continue
                 
                 price = price_info.get('high', 0)
