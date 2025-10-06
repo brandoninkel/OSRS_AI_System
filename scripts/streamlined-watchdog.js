@@ -2061,10 +2061,37 @@ print(processed)
     // Clear line and show consolidated progress
     const progressLine = `${operation} |${chalk.cyan(bar)}| ${percentage}% | ${current.toLocaleString()}/${total.toLocaleString()} | ETA: ${eta}s | ${rate}/s${extraInfo}`;
     process.stdout.write(`\r${progressLine}`);
+
+    // Write status file for GUI monitoring
+    this.writeStatusFile({
+      active: true,
+      task: operation,
+      progress: percentage,
+      status: `${current.toLocaleString()}/${total.toLocaleString()} items`,
+      eta: `${eta}s`,
+      rate: `${rate}/s`
+    });
+  }
+
+  writeStatusFile(status) {
+    try {
+      const statusFile = path.join(__dirname, '../logs/watchdog_status.json');
+      fs.writeFileSync(statusFile, JSON.stringify(status, null, 2));
+    } catch (error) {
+      // Silently fail - don't interrupt operations for status file writes
+    }
   }
 
   clearProgress() {
     process.stdout.write('\r' + ' '.repeat(120) + '\r');
+    // Clear status file
+    this.writeStatusFile({
+      active: false,
+      task: 'Idle',
+      progress: 0,
+      status: 'Ready',
+      eta: ''
+    });
   }
 
   showFinalResult(operation, successful, total, duration) {
