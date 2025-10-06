@@ -857,6 +857,24 @@ body {
 
   .resource-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+  }
+
+  .progress-ring {
+    width: 70px;
+    height: 70px;
+  }
+
+  .progress-ring-text {
+    font-size: 0.75rem;
+  }
+
+  .resource-label {
+    font-size: 0.6rem;
+  }
+
+  .resource-value {
+    font-size: 0.65rem;
   }
 }
 
@@ -880,7 +898,34 @@ body {
   }
 
   .resource-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xs);
+  }
+
+  .resource-item {
+    gap: 0;
+  }
+
+  .resource-header {
+    margin-bottom: 2px;
+  }
+
+  .resource-label {
+    font-size: 0.55rem;
+  }
+
+  .resource-value {
+    font-size: 0.6rem;
+  }
+
+  .progress-ring {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto;
+  }
+
+  .progress-ring-text {
+    font-size: 0.7rem;
   }
 
   .logs-tabs {
@@ -897,6 +942,18 @@ body {
   .btn {
     font-size: 0.65rem;
     padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .process-icon {
+    font-size: 0.85rem;
+  }
+
+  .process-name {
+    font-size: 0.65rem;
+  }
+
+  .process-status .status-text {
+    font-size: 0.6rem;
   }
 }
 
