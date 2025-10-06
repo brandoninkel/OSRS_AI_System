@@ -86,10 +86,14 @@ cd "$PROJECT_ROOT"
 # Set up PATH to include common Python locations
 export PATH="/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:$HOME/.pyenv/shims:$PATH"
 
+# Enable user site-packages (where PyQt6 is installed for Python 3.9)
+export PYTHONUSERBASE="$HOME/Library/Python/3.9"
+
 # Function to test if Python has PyQt6
 test_python_pyqt6() {
     local python_cmd="$1"
     if command -v "$python_cmd" &> /dev/null; then
+        # Test with user site-packages enabled
         if "$python_cmd" -c "import PyQt6" 2>/dev/null; then
             echo "$python_cmd"
             return 0
@@ -101,8 +105,8 @@ test_python_pyqt6() {
 # Try to find Python with PyQt6 installed
 PYTHON_CMD=""
 
-# Try common Python commands in order
-for cmd in python3 /usr/bin/python3 /usr/local/bin/python3 /opt/homebrew/bin/python3 python; do
+# Try common Python commands in order (including Xcode Python)
+for cmd in python3 /Applications/Xcode.app/Contents/Developer/usr/bin/python3 /usr/bin/python3 /usr/local/bin/python3 /opt/homebrew/bin/python3 python; do
     if PYTHON_CMD=$(test_python_pyqt6 "$cmd"); then
         break
     fi
