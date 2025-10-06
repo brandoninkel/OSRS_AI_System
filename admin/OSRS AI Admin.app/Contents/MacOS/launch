@@ -12,14 +12,16 @@ cd "$PROJECT_ROOT"
 # Set up PATH to include common Python locations
 export PATH="/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:$HOME/.pyenv/shims:$PATH"
 
-# Enable user site-packages (where PyQt6 is installed for Python 3.9)
-export PYTHONUSERBASE="$HOME/Library/Python/3.9"
+# Don't set PYTHONUSERBASE or PYTHONPATH - let Python find user site-packages naturally
+# This avoids version conflicts between different Python installations
 
 # Function to test if Python has PyQt6
 test_python_pyqt6() {
     local python_cmd="$1"
     if command -v "$python_cmd" &> /dev/null; then
-        # Test with user site-packages enabled
+        # Get the actual Python executable path
+        local actual_python=$("$python_cmd" -c "import sys; print(sys.executable)" 2>/dev/null)
+        # Test if PyQt6 can be imported
         if "$python_cmd" -c "import PyQt6" 2>/dev/null; then
             echo "$python_cmd"
             return 0
@@ -28,29 +30,14 @@ test_python_pyqt6() {
     return 1
 }
 
-# Try to find Python with PyQt6 installed
-PYTHON_CMD=""
+# Just use python3 - it should work from terminal
+PYTHON_CMD="python3"
 
-# Try common Python commands in order (including Xcode Python)
-for cmd in python3 /Applications/Xcode.app/Contents/Developer/usr/bin/python3 /usr/bin/python3 /usr/local/bin/python3 /opt/homebrew/bin/python3 python; do
-    if PYTHON_CMD=$(test_python_pyqt6 "$cmd"); then
-        break
-    fi
-done
-
-# If no Python with PyQt6 found, show error with details
-if [ -z "$PYTHON_CMD" ]; then
-    # Get Python version for error message
-    if command -v python3 &> /dev/null; then
-        PYTHON_VERSION=$(python3 --version 2>&1)
-        PYTHON_PATH=$(which python3)
-
-        osascript -e "display dialog \"PyQt6 not found in system Python.\n\nPython: $PYTHON_PATH\nVersion: $PYTHON_VERSION\n\nPlease install PyQt6:\n  python3 -m pip install --user PyQt6 psutil\n\nOr run from terminal:\n  cd $ADMIN_DIR\n  python3 pyqt6_admin_gui.py\" buttons {\"OK\"} default button \"OK\" with icon stop"
-    else
-        osascript -e 'display dialog "Python 3 is required but not found. Please install Python 3." buttons {"OK"} default button "OK" with icon stop'
-    fi
+# Verify Python 3 is available
+if ! command -v python3 &> /dev/null; then
+    osascript -e 'display dialog "Python 3 is required but not found. Please install Python 3." buttons {"OK"} default button "OK" with icon stop'
     exit 1
 fi
 
-# Launch the GUI
-exec "$PYTHON_CMD" "$ADMIN_DIR/pyqt6_admin_gui.py" 2>&1 | logger -t "OSRS-AI-Admin"
+# Launch the GUI via wrapper script to avoid macOS security restrictions
+exec "$ADMIN_DIR/launch_gui_wrapper.sh" 2>&1 | tee -a "$HOME/Library/Logs/OSRS-AI-Admin.log"
