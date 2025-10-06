@@ -35,9 +35,8 @@
   --spacing-lg: 0.8rem;
   --spacing-xl: 1rem;
 
-  /* Sharp angles - NO ROUNDED CORNERS */
-  --clip-corner: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-  --clip-corner-small: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  /* Clean straight edges */
+  --border-width: 2px;
 
   /* Shadows with neon glow */
   --shadow-cyan: 0 0 10px var(--glow-cyan), 0 0 20px var(--glow-cyan), 0 0 30px var(--glow-cyan);
@@ -128,7 +127,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  clip-path: var(--clip-corner-small);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 1.2rem;
@@ -228,7 +226,7 @@ body {
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
-  clip-path: var(--clip-corner-small);
+  border-left: 4px solid var(--border-color);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -236,15 +234,14 @@ body {
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background: var(--accent-warning);
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  animation: pulse-diamond 2s infinite;
+  animation: pulse-dot 2s infinite;
   box-shadow: 0 0 10px currentColor;
 }
 
-@keyframes pulse-diamond {
+@keyframes pulse-dot {
   0%, 100% {
     opacity: 1;
     transform: scale(1);
@@ -299,38 +296,18 @@ body {
 .card {
   background: var(--bg-card);
   border: 2px solid var(--border-color);
-  clip-path: var(--clip-corner);
+  border-left: 4px solid var(--accent-primary);
   padding: var(--spacing-md);
-  box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.1), var(--shadow-cyan);
+  box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.1);
   transition: all 0.3s;
   position: relative;
   flex-shrink: 0;
 }
 
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid transparent;
-  clip-path: var(--clip-corner);
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) border-box;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
 .card:hover {
-  box-shadow: inset 0 0 40px rgba(0, 255, 255, 0.2), 0 0 30px var(--glow-cyan);
-  transform: translateY(-2px);
-}
-
-.card:hover::before {
-  opacity: 1;
+  border-left-color: var(--accent-secondary);
+  box-shadow: inset 0 0 40px rgba(0, 255, 255, 0.2), 0 0 20px var(--glow-cyan);
+  transform: translateX(2px);
 }
 
 .card-title {
@@ -366,7 +343,6 @@ body {
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
   border: 2px solid transparent;
-  clip-path: var(--clip-corner-small);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -377,21 +353,19 @@ body {
   overflow: hidden;
 }
 
-.btn::before {
+.btn::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  bottom: 0;
+  left: 0;
   width: 0;
-  height: 0;
-  background: rgba(255, 255, 255, 0.2);
-  transform: translate(-50%, -50%);
-  transition: width 0.3s, height 0.3s;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.3s;
 }
 
-.btn:hover::before {
-  width: 300px;
-  height: 300px;
+.btn:hover::after {
+  width: 100%;
 }
 
 .btn-icon {
@@ -542,34 +516,22 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--bg-tertiary);
-  border: 2px solid var(--border-color);
-  clip-path: var(--clip-corner-small);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid transparent;
   transition: all 0.2s;
   position: relative;
 }
 
-.process-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--accent-primary);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
 .process-item:hover {
-  border-color: var(--accent-primary);
-  box-shadow: var(--shadow-cyan);
-  transform: translateX(5px);
+  border-left-color: var(--accent-primary);
+  box-shadow: 0 0 15px var(--glow-cyan);
+  transform: translateX(3px);
 }
 
-.process-item:hover::before {
-  opacity: 1;
+.process-item.running {
+  border-left-color: var(--accent-success);
 }
 
 .process-info {
@@ -636,10 +598,9 @@ body {
 .progress-bar {
   position: relative;
   width: 100%;
-  height: 24px;
+  height: 20px;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
-  clip-path: var(--clip-corner-small);
   overflow: hidden;
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
 }
@@ -714,7 +675,7 @@ body {
   padding: var(--spacing-xs) var(--spacing-sm);
   background: transparent;
   border: 2px solid var(--border-color);
-  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  border-bottom: 3px solid transparent;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -725,7 +686,7 @@ body {
 }
 
 .tab-btn:hover {
-  border-color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
   color: var(--accent-primary);
   box-shadow: 0 0 15px var(--glow-cyan);
 }
@@ -733,22 +694,10 @@ body {
 .tab-btn.active {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
   color: #000;
   box-shadow: var(--shadow-cyan);
   font-weight: 900;
-}
-
-.tab-btn.active::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-  z-index: -1;
-  animation: pulse-border 2s infinite;
 }
 
 .logs-content {
@@ -763,7 +712,7 @@ body {
   padding: var(--spacing-sm);
   background: var(--bg-secondary);
   border: 2px solid var(--border-color);
-  clip-path: var(--clip-corner);
+  border-left: 4px solid var(--accent-primary);
   font-family: 'Share Tech Mono', 'Courier New', monospace;
   font-size: 0.65rem;
   line-height: 1.4;
@@ -894,7 +843,8 @@ body {
   }
 
   .control-buttons {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xs);
   }
 
   .resource-grid {
@@ -919,13 +869,78 @@ body {
   }
 
   .progress-ring {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     margin: 0 auto;
   }
 
   .progress-ring-text {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+  }
+
+  /* Make processes card more compact */
+  .processes {
+    max-height: 120px;
+  }
+
+  .process-list {
+    gap: var(--spacing-xs);
+  }
+
+  .process-item {
+    padding: 4px var(--spacing-xs);
+    min-height: 32px;
+  }
+
+  .process-icon {
+    font-size: 0.75rem;
+  }
+
+  .process-name {
+    font-size: 0.6rem;
+  }
+
+  .process-status {
+    gap: 3px;
+  }
+
+  .process-status .status-text {
+    font-size: 0.55rem;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Make current operation readable */
+  .current-operation {
+    padding: var(--spacing-sm);
+  }
+
+  .operation-task {
+    font-size: 0.75rem;
+    margin-bottom: var(--spacing-xs);
+    word-break: break-word;
+  }
+
+  .progress-bar {
+    height: 18px;
+    margin: var(--spacing-xs) 0;
+  }
+
+  .progress-text {
+    font-size: 0.65rem;
+  }
+
+  .operation-meta {
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+  }
+
+  .operation-status {
+    font-size: 0.65rem;
   }
 
   .logs-tabs {
@@ -937,23 +952,20 @@ body {
 
   .card-title {
     font-size: 0.65rem;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .card {
+    padding: var(--spacing-sm);
   }
 
   .btn {
-    font-size: 0.65rem;
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-
-  .process-icon {
-    font-size: 0.85rem;
-  }
-
-  .process-name {
-    font-size: 0.65rem;
-  }
-
-  .process-status .status-text {
     font-size: 0.6rem;
+    padding: 6px var(--spacing-sm);
+  }
+
+  .btn-icon {
+    font-size: 0.7rem;
   }
 }
 
