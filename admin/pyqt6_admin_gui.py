@@ -162,12 +162,12 @@ class ProcessManager:
 class StatusUpdateThread(QThread):
     """Background thread for updating system status"""
     status_updated = pyqtSignal(dict)
-    
+
     def __init__(self, process_manager: ProcessManager):
         super().__init__()
         self.process_manager = process_manager
         self.running = True
-    
+
     def run(self):
         """Main thread loop for status updates"""
         while self.running:
@@ -175,14 +175,9 @@ class StatusUpdateThread(QThread):
                 # Get system status
                 status = {
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "processes": {
-                        "orchestrator": self.process_manager.get_process_status("orchestrator"),
-                        "api": self.process_manager.get_process_status("api"),
-                        "frontend": self.process_manager.get_process_status("frontend"),
-                        "watchdog": self.process_manager.get_process_status("watchdog")
-                    },
+                    "processes": self.get_running_processes(),
                     "system": self.get_system_stats(),
-                    "orchestrator_progress": self.get_orchestrator_status()
+                    "current_operation": self.get_current_operation()
                 }
 
                 self.status_updated.emit(status)
@@ -191,6 +186,41 @@ class StatusUpdateThread(QThread):
                 print(f"Status update error: {e}")
 
             self.msleep(2000)  # Update every 2 seconds
+
+    def get_running_processes(self) -> Dict:
+        """Check which OSRS AI processes are actually running"""
+        processes = {}
+
+        # Check for watchdog
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                cmdline = ' '.join(proc.info['cmdline'] or [])
+
+                if 'streamlined-watchdog' in cmdline:
+                    processes['watchdog'] = {
+                        "status": "running",
+                        "pid": proc.info['pid'],
+                        "cpu": proc.cpu_percent(),
+                        "memory": proc.memory_info().rss / 1024 / 1024
+                    }
+                elif 'osrs_api.py' in cmdline or 'flask' in cmdline.lower():
+                    processes['api'] = {
+                        "status": "running",
+                        "pid": proc.info['pid'],
+                        "cpu": proc.cpu_percent(),
+                        "memory": proc.memory_info().rss / 1024 / 1024
+                    }
+                elif 'attribution' in cmdline.lower():
+                    processes['attribution'] = {
+                        "status": "running",
+                        "pid": proc.info['pid'],
+                        "cpu": proc.cpu_percent(),
+                        "memory": proc.memory_info().rss / 1024 / 1024
+                    }
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        return processes
     
     def get_system_stats(self) -> Dict:
         """Get system resource statistics"""
@@ -211,37 +241,164 @@ class StatusUpdateThread(QThread):
             return {"cpu": 0, "memory_percent": 0, "memory_used": 0,
                    "memory_total": 0, "disk_percent": 0, "disk_free": 0}
 
-    def get_orchestrator_status(self) -> Dict:
-        """Get orchestrator status from status file"""
-        try:
-            status_file = REPO_ROOT / "logs" / "orchestrator_status.json"
-            if status_file.exists():
-                with open(status_file, 'r') as f:
-                    return json.load(f)
-        except Exception as e:
-            print(f"Error reading orchestrator status: {e}")
+    def get_current_operation(self) -> Dict:
+        """Get current operation status from various sources"""
+        # Check watchdog status
+        watchdog_status = self.check_watchdog_status()
+        if watchdog_status:
+            return watchdog_status
 
-        # Default status if file doesn't exist or can't be read
+        # Check attribution status
+        attribution_status = self.check_attribution_status()
+        if attribution_status:
+            return attribution_status
+
+        # Check GE data status
+        ge_status = self.check_ge_status()
+        if ge_status:
+            return ge_status
+
+        # Default: idle
         return {
-            "running": False,
-            "current_stage": "idle",
-            "queue_length": 0,
-            "progress": {
-                "current_stage": "idle",
-                "stage_progress": 0.0,
-                "overall_progress": 0.0,
-                "eta_seconds": 0,
-                "stages": {
-                    "embeddings": {"status": "pending", "progress": 0.0, "eta": 0},
-                    "kg_triples": {"status": "pending", "progress": 0.0, "eta": 0},
-                    "kg_pykeen": {"status": "pending", "progress": 0.0, "eta": 0},
-                    "kg_embeddings": {"status": "pending", "progress": 0.0, "eta": 0}
-                }
-            }
+            "task": "System idle",
+            "progress": 0,
+            "status": "Ready",
+            "eta": ""
         }
+
+    def check_watchdog_status(self) -> Optional[Dict]:
+        """Check if watchdog is doing something"""
+        try:
+            status_file = REPO_ROOT / "logs" / "watchdog_status.json"
+            if status_file.exists():
+                mtime = status_file.stat().st_mtime
+                # Only consider recent status (within last 30 seconds)
+                if time.time() - mtime < 30:
+                    with open(status_file, 'r') as f:
+                        data = json.load(f)
+                        if data.get("active"):
+                            return {
+                                "task": data.get("task", "Watchdog processing"),
+                                "progress": int(data.get("progress", 0)),
+                                "status": data.get("status", "Processing"),
+                                "eta": data.get("eta", "")
+                            }
+        except Exception:
+            pass
+        return None
+
+    def check_attribution_status(self) -> Optional[Dict]:
+        """Check if attribution service is running"""
+        try:
+            status_file = REPO_ROOT / "logs" / "attribution_status.json"
+            if status_file.exists():
+                mtime = status_file.stat().st_mtime
+                if time.time() - mtime < 30:
+                    with open(status_file, 'r') as f:
+                        data = json.load(f)
+                        if data.get("active"):
+                            return {
+                                "task": f"Attribution: {data.get('current_page', 'Processing')}",
+                                "progress": int(data.get("progress", 0)),
+                                "status": f"{data.get('processed', 0)}/{data.get('total', 0)} pages",
+                                "eta": data.get("eta", "")
+                            }
+        except Exception:
+            pass
+        return None
+
+    def check_ge_status(self) -> Optional[Dict]:
+        """Check if GE data processing is running"""
+        try:
+            status_file = REPO_ROOT / "logs" / "ge_status.json"
+            if status_file.exists():
+                mtime = status_file.stat().st_mtime
+                if time.time() - mtime < 30:
+                    with open(status_file, 'r') as f:
+                        data = json.load(f)
+                        if data.get("active"):
+                            return {
+                                "task": f"GE Data: {data.get('operation', 'Processing')}",
+                                "progress": int(data.get("progress", 0)),
+                                "status": data.get("status", "Processing"),
+                                "eta": data.get("eta", "")
+                            }
+        except Exception:
+            pass
+        return None
     
     def stop(self):
         """Stop the status update thread"""
+        self.running = False
+        self.wait()
+
+class LogTailThread(QThread):
+    """Background thread for tailing log files"""
+    log_line = pyqtSignal(str, str)  # (message, log_type)
+
+    def __init__(self):
+        super().__init__()
+        self.running = True
+        self.log_positions = {}  # Track file positions
+
+    def run(self):
+        """Main thread loop for tailing logs"""
+        while self.running:
+            try:
+                # Tail watchdog log
+                self.tail_log(
+                    LOG_DIR / "watchdog.out",
+                    "watchdog"
+                )
+
+                # Tail API log
+                self.tail_log(
+                    LOG_DIR / "api.out",
+                    "system"
+                )
+
+                # Tail attribution log
+                self.tail_log(
+                    LOG_DIR / "attribution.out",
+                    "system"
+                )
+
+            except Exception as e:
+                print(f"Log tail error: {e}")
+
+            self.msleep(500)  # Check every 500ms
+
+    def tail_log(self, log_file: Path, log_type: str):
+        """Tail a specific log file"""
+        try:
+            if not log_file.exists():
+                return
+
+            # Get current position or start from end
+            if str(log_file) not in self.log_positions:
+                # Start from end of file
+                self.log_positions[str(log_file)] = log_file.stat().st_size
+                return
+
+            # Read new lines
+            with open(log_file, 'r') as f:
+                f.seek(self.log_positions[str(log_file)])
+                new_lines = f.readlines()
+
+                # Emit new lines
+                for line in new_lines:
+                    line = line.strip()
+                    if line:
+                        self.log_line.emit(line, log_type)
+
+                # Update position
+                self.log_positions[str(log_file)] = f.tell()
+
+        except Exception as e:
+            print(f"Error tailing {log_file}: {e}")
+
+    def stop(self):
+        """Stop the log tail thread"""
         self.running = False
         self.wait()
 
@@ -255,6 +412,7 @@ class OSRSAdminMainWindow(QMainWindow):
         super().__init__()
         self.process_manager = process_manager
         self.status_thread = None
+        self.log_tail_thread = None
 
         # Window configuration
         self.setWindowTitle("🚀 OSRS AI System Control Center")
@@ -269,6 +427,9 @@ class OSRSAdminMainWindow(QMainWindow):
 
         # Start status monitoring
         self.start_status_monitoring()
+
+        # Start log tailing
+        self.start_log_tailing()
 
         # Setup window close handler
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -652,12 +813,12 @@ class OSRSAdminMainWindow(QMainWindow):
         self.current_task_label.setProperty("labelType", "subtitle")
         layout.addWidget(self.current_task_label)
 
-        # Progress bar
+        # Progress bar (just show percentage, not x/100)
         self.unified_progress = QProgressBar()
         self.unified_progress.setRange(0, 100)
         self.unified_progress.setValue(0)
         self.unified_progress.setTextVisible(True)
-        self.unified_progress.setFormat("%p% - %v/%m")
+        self.unified_progress.setFormat("%p%")
         layout.addWidget(self.unified_progress)
 
         # Status line (details + ETA)
@@ -716,6 +877,30 @@ class OSRSAdminMainWindow(QMainWindow):
         self.time_timer.timeout.connect(self.update_time_display)
         self.time_timer.start(1000)  # Update every second
 
+    def start_log_tailing(self):
+        """Start the background log tailing thread"""
+        self.log_tail_thread = LogTailThread()
+        self.log_tail_thread.log_line.connect(self.handle_log_line)
+        self.log_tail_thread.start()
+
+    def handle_log_line(self, message: str, log_type: str):
+        """Handle a new log line from the tail thread"""
+        # Add timestamp
+        timestamp = time.strftime("%H:%M:%S")
+        formatted_message = f"[{timestamp}] {message}"
+
+        # Route to appropriate tab
+        if log_type == "watchdog":
+            self.watchdog_log.append(formatted_message)
+            self.watchdog_log.verticalScrollBar().setValue(
+                self.watchdog_log.verticalScrollBar().maximum()
+            )
+        else:
+            self.system_log.append(formatted_message)
+            self.system_log.verticalScrollBar().setValue(
+                self.system_log.verticalScrollBar().maximum()
+            )
+
     def update_time_display(self):
         """Update the time display in the header"""
         current_time = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -765,9 +950,21 @@ class OSRSAdminMainWindow(QMainWindow):
             else:
                 self.disk_circle.setStyleSheet(f"QProgressBar::chunk {{ background-color: {ModernColors.GREEN}; }}")
 
+            # Update current operation display
+            operation = status.get("current_operation", {})
+            self.current_task_label.setText(operation.get("task", "System idle"))
+            self.unified_progress.setValue(operation.get("progress", 0))
+
+            status_text = operation.get("status", "Ready")
+            eta = operation.get("eta", "")
+            if eta:
+                self.progress_status_label.setText(f"{status_text} - ETA: {eta}")
+            else:
+                self.progress_status_label.setText(status_text)
+
             # Update status bar with process count
             processes = status.get("processes", {})
-            running_count = sum(1 for p in processes.values() if p.get("status") == "running")
+            running_count = len(processes)
             self.process_count.setText(f"Processes: {running_count}")
 
             if running_count > 0:
@@ -964,6 +1161,10 @@ class OSRSAdminMainWindow(QMainWindow):
         # Stop status monitoring thread
         if self.status_thread:
             self.status_thread.stop()
+
+        # Stop log tailing thread
+        if self.log_tail_thread:
+            self.log_tail_thread.stop()
 
         # Clean up all processes
         self.process_manager.cleanup_all_processes()
