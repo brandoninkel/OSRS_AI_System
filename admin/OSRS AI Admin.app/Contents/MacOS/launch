@@ -1,0 +1,29 @@
+#!/bin/bash
+# Launch script for OSRS AI Admin GUI
+
+# Get the directory where the app bundle is located
+APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ADMIN_DIR="$(dirname "$APP_DIR")"
+PROJECT_ROOT="$(dirname "$ADMIN_DIR")"
+
+# Change to project root
+cd "$PROJECT_ROOT"
+
+# Find Python 3
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+else
+    osascript -e 'display dialog "Python 3 is required but not found. Please install Python 3." buttons {"OK"} default button "OK" with icon stop'
+    exit 1
+fi
+
+# Check if PyQt6 is installed
+if ! $PYTHON_CMD -c "import PyQt6" 2>/dev/null; then
+    osascript -e 'display dialog "PyQt6 is not installed. Installing now..." buttons {"OK"} default button "OK"'
+    $PYTHON_CMD -m pip install PyQt6 psutil
+fi
+
+# Launch the GUI
+exec $PYTHON_CMD "$ADMIN_DIR/pyqt6_admin_gui.py" 2>&1 | logger -t "OSRS-AI-Admin"

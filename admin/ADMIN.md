@@ -36,8 +36,12 @@ The Admin GUI provides a professional control panel for managing the OSRS AI sys
 ```
 admin/
 ├── ADMIN.md                        # This documentation
-├── pyqt6_admin_gui.py              # ✅ ACTIVE - Professional admin GUI (1,083 lines)
-├── start-pyqt6-gui.command         # ✅ ACTIVE - Launch script
+├── pyqt6_admin_gui.py              # ✅ ACTIVE - Professional admin GUI (1,098 lines)
+├── OSRS AI Admin.app               # ✅ ACTIVE - Native macOS application bundle
+├── create_app_bundle.sh            # ✅ ACTIVE - Build script for .app bundle
+├── create_icon.py                  # ✅ ACTIVE - Icon generator
+├── APP_BUNDLE_README.md            # ✅ ACTIVE - App bundle documentation
+├── start-pyqt6-gui.command         # ✅ ACTIVE - Alternative launch script
 └── old/                            # Archived files
     ├── admin_gui.py                # ❌ Old DearPyGui version
     ├── modern_admin_gui.py         # ❌ Old DearPyGui modern version
@@ -51,7 +55,7 @@ admin/
     └── pyqt6_gui_features.md       # ❌ Old documentation
 ```
 
-**Active Files**: 2 files (1 Python + 1 shell script)  
+**Active Files**: 6 files (1 Python GUI + 1 macOS app + 2 build scripts + 2 docs)
 **Archived Files**: 10 files in `admin/old/`
 
 ---
@@ -306,19 +310,31 @@ chmod +x start-pyqt6-gui.command
 
 ### Quick Start
 
-**Option 1: Double-click in Finder**
+**Option 1: Native macOS App** (Recommended)
 ```
 Navigate to: /Users/brandon/Documents/projects/GE/admin/
-Double-click: start-pyqt6-gui.command
+Double-click: OSRS AI Admin.app
 ```
 
-**Option 2: Terminal**
+**Option 2: Add to Applications**
+```
+Drag "OSRS AI Admin.app" to /Applications/
+Launch from Launchpad or Spotlight (search "OSRS AI")
+```
+
+**Option 3: Add to Dock**
+```
+Launch the app, then right-click Dock icon
+Select: Options → Keep in Dock
+```
+
+**Option 4: Terminal (Alternative)**
 ```bash
 cd /Users/brandon/Documents/projects/GE/admin
 ./start-pyqt6-gui.command
 ```
 
-**Option 3: Direct Python**
+**Option 5: Direct Python (Development)**
 ```bash
 cd /Users/brandon/Documents/projects/GE/admin
 python3 pyqt6_admin_gui.py
